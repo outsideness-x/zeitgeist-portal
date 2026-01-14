@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AuthModal } from './AuthModal';
+import { ThemeToggle } from './ThemeToggle'; // <--- Импорт
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
@@ -19,7 +20,7 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-paper/95 backdrop-blur-sm border-b border-sepia shadow-sm transition-all duration-300">
+      <header className="sticky top-0 z-50 bg-paper/95 backdrop-blur-sm border-b border-sepia shadow-sm transition-all duration-300 dark:bg-black/90 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
@@ -39,6 +40,8 @@ export const Header: React.FC = () => {
 
             {/* Actions */}
             <div className="flex items-center space-x-4">
+              <ThemeToggle /> {/* <--- Вставили переключатель */}
+
               <Link 
                 href="/upload" 
                 className="hidden md:inline-flex items-center px-4 py-2 border border-accent text-accent hover:bg-accent hover:text-white transition-all font-sans text-sm uppercase tracking-wider duration-300"

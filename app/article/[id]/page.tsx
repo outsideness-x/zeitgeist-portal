@@ -1,90 +1,99 @@
-import Link from 'next/link';
-import { fetchArticles } from '@/services/ghostService';
-import { ArticleCard } from '@/components/ArticleCard';
+import { fetchArticleById } from '@/services/ghostService';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 
-export default async function Home() {
-  // Загрузка данных на сервере
-  const articles = await fetchArticles();
+type Props = {
+  params: Promise<{ id: string }>;
+};
 
-  const featured = articles[0];
-  const journalArticles = articles.filter(a => a.type === 'journal').slice(1, 4);
-  const researchPapers = articles.filter(a => a.type === 'research').slice(0, 4);
+// meta tegs
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const article = await fetchArticleById(id);
+
+  if (!article) {
+    return { title: 'Article Not Found' };
+  }
+
+  return {
+    title: `${article.title} | Zeitgeist`,
+    description: article.excerpt,
+  };
+}
+
+// 
+export default async function ArticlePage({ params }: Props) {
+  const { id } = await params;
+  const article = await fetchArticleById(id);
+
+  // 404
+  if (!article) {
+    notFound();
+  }
 
   return (
-    <div className="pb-20">
-      {/* Hero Section */}
-      <section className="bg-ink text-paper py-20 px-4 text-center">
-        <h1 className="font-display text-5xl md:text-7xl mb-6">The Zeitgeist</h1>
-        <p className="font-serif text-xl md:text-2xl text-gray-400 italic max-w-2xl mx-auto">
-          &quot;The spirit of the times.&quot; Uncovering the history, culture, and manuscripts of the East.
-        </p>
-      </section>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10">
-        {/* Featured Article */}
-        {featured && (
-          <div className="bg-paper p-6 md:p-10 shadow-xl border border-sepia mb-20">
-            <ArticleCard article={featured} featured={true} />
+    <article className="pb-20 min-h-screen bg-paper dark:bg-black transition-colors duration-300">
+      {/* Header */}
+      <div className="bg-paper dark:bg-black py-20 px-4 text-center border-b border-sepia dark:border-gray-800">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-center gap-2 mb-6">
+            <span className={`px-3 py-1 text-xs font-sans uppercase tracking-widest text-white ${article.type === 'nova' ? 'bg-black border border-green-500 text-green-500' : 'bg-accent'}`}>
+              {article.type === 'nova' ? 'NOVA EXPRESS' : article.type}
+            </span>
           </div>
-        )}
-
-        {/* Two Columns Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          
-          {/* Main Feed (Journal) */}
-          <div className="lg:col-span-8">
-            <div className="flex items-baseline justify-between mb-8 border-b-2 border-black pb-2">
-              <h2 className="font-display text-3xl">From The Journal</h2>
-              <Link href="/journal" className="font-sans text-sm font-bold uppercase text-accent hover:text-black">View All</Link>
-            </div>
-            
-            <div className="space-y-12">
-              {journalArticles.map(article => (
-                <ArticleCard key={article.id} article={article} />
-              ))}
-            </div>
-          </div>
-
-          {/* Sidebar (Latest Research) */}
-          <div className="lg:col-span-4 space-y-12">
-            
-            {/* Research List */}
-            <div>
-              <div className="flex items-baseline justify-between mb-8 border-b-2 border-accent pb-2">
-                <h2 className="font-display text-2xl text-accent">Latest Research</h2>
-                <Link href="/research" className="font-sans text-xs font-bold uppercase text-gray-500 hover:text-accent">Catalog</Link>
-              </div>
-
-              <div className="space-y-6">
-                {researchPapers.map(paper => (
-                  <div key={paper.id} className="group">
-                    <span className="block text-xs font-sans text-gray-400 mb-1">{new Date(paper.published_at).toLocaleDateString()}</span>
-                    <h4 className="font-serif text-lg leading-tight mb-2 group-hover:text-accent transition-colors">
-                      <Link href={`/article/${paper.id}`}>{paper.title}</Link>
-                    </h4>
-                    <p className="text-sm text-gray-600 line-clamp-2">{paper.excerpt}</p>
-                    <div className="mt-2 flex gap-2">
-                        {paper.tags.slice(0, 2).map(tag => (
-                            <span key={tag} className="text-[10px] uppercase border border-gray-300 px-2 py-0.5 text-gray-500">{tag}</span>
-                        ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Donation CTA */}
-            <div className="bg-sepia p-8 text-center border border-gray-300">
-                <h3 className="font-display text-2xl mb-4">Support Our Work</h3>
-                <p className="font-serif text-sm mb-6">Help us keep the archives open and free for all scholars.</p>
-                <Link href="/donate" className="inline-block px-6 py-3 bg-accent text-white font-sans uppercase text-sm tracking-widest hover:bg-black transition-colors">
-                    Donate Now
-                </Link>
-            </div>
-
+          <h1 className="font-display text-4xl md:text-6xl mb-6 leading-tight dark:text-gray-100">{article.title}</h1>
+          <div className="font-serif text-lg text-gray-500 italic">
+            By <span className="text-ink dark:text-gray-300 not-italic font-bold">{article.authors[0].name}</span> &mdash; {new Date(article.published_at).toLocaleDateString()}
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Feature Image */}
+      {article.feature_image && (
+        <div className="w-full h-[50vh] md:h-[70vh] relative overflow-hidden">
+           <img src={article.feature_image} alt={article.title} className="w-full h-full object-cover" />
+           <div className="absolute inset-0 bg-gradient-to-t from-paper dark:from-black to-transparent h-20 bottom-0 top-auto"></div>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="max-w-2xl mx-auto px-4 -mt-10 relative z-10 bg-paper dark:bg-card-bg p-8 shadow-sm border border-transparent dark:border-gray-800">
+        
+        {/* main content */}
+        <div className="prose prose-lg prose-stone dark:prose-invert font-serif mx-auto first-letter:text-5xl first-letter:font-display first-letter:float-left first-letter:mr-3 first-letter:mt-2">
+           
+           <p className="lead text-xl text-gray-700 dark:text-gray-300 mb-6">{article.excerpt}</p>
+           
+           {article.content ? (
+             <div dangerouslySetInnerHTML={{ __html: article.content }} />
+           ) : (
+             <>
+               <p>
+                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+                 Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+               </p>
+               <h3 className="font-display text-2xl mt-8 mb-4">Historical Context</h3>
+               <p>
+                 At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.
+               </p>
+               <blockquote className="border-l-4 border-accent pl-6 italic text-gray-600 dark:text-gray-400 my-8">
+                 &quot;The archives whisper to those who listen.&quot;
+               </blockquote>
+               <p>
+                 Similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga.
+               </p>
+             </>
+           )}
+        </div>
+
+        {/* Download Button for Research */}
+        {article.type === 'research' && article.pdfUrl && (
+          <div className="mt-12 p-6 bg-stone-100 dark:bg-gray-900 border border-stone-200 dark:border-gray-700 text-center">
+            <h4 className="font-sans font-bold uppercase mb-2 dark:text-gray-200">Access Full Paper</h4>
+            <a href={article.pdfUrl} className="text-accent underline hover:text-ink dark:hover:text-white">Download PDF (2.4 MB)</a>
+          </div>
+        )}
+      </div>
+    </article>
   );
 }

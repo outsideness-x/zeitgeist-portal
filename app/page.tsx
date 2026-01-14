@@ -3,7 +3,7 @@ import { fetchArticles } from '@/services/ghostService';
 import { ArticleCard } from '@/components/ArticleCard';
 
 export default async function Home() {
-  // Загрузка данных на сервере
+  // data fetching on server
   const articles = await fetchArticles();
 
   const featured = articles[0];

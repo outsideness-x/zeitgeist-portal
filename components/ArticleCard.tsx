@@ -8,11 +8,10 @@ interface ArticleCardProps {
 }
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = false }) => {
-  // beidge badge color based on type
   const getBadgeColor = (type: string) => {
     switch (type) {
-      case 'research': return 'bg-indigo-900';
-      case 'nova': return 'bg-black text-green-400 border border-green-400'; // Киберпанк стиль
+      case 'research': return 'bg-indigo-900 text-white';
+      case 'nova': return 'bg-black text-green-400 border border-green-400';
       default: return 'bg-accent text-white';
     }
   };
@@ -20,8 +19,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
   return (
     <div className={`group flex flex-col ${featured ? 'md:grid md:grid-cols-2 md:gap-8 mb-12' : 'h-full'}`}>
       
-      {/* Image Container */}
-      <div className={`relative overflow-hidden bg-sepia ${featured ? 'h-64 md:h-96' : 'h-64'} mb-4 md:mb-0`}>
+      {/* fx image container !!! */}
+      <Link href={`/article/${article.id}`} className={`relative overflow-hidden bg-sepia ${featured ? 'h-64 md:h-96' : 'h-64'} mb-4 md:mb-0 block`}>
         <img 
           src={article.feature_image} 
           alt={article.title}
@@ -33,7 +32,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
             {article.type === 'nova' ? 'NOVA EXPRESS' : article.type}
           </span>
         </div>
-      </div>
+      </Link>
 
       {/* Content */}
       <div className={`flex flex-col justify-center ${featured ? 'md:pr-8' : ''}`}>
@@ -43,7 +42,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
           <span>{article.reading_time} min read</span>
         </div>
 
-        <h3 className={`${featured ? 'text-3xl md:text-4xl' : 'text-2xl'} font-display leading-tight mb-3 group-hover:text-accent transition-colors`}>
+        <h3 className={`${featured ? 'text-3xl md:text-4xl' : 'text-2xl'} font-display leading-tight mb-3 group-hover:text-accent dark:group-hover:text-white transition-colors`}>
           <Link href={`/article/${article.id}`}>
             {article.title}
           </Link>
@@ -51,12 +50,12 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
 
         <div className="w-12 h-1 bg-accent mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-        <p className="font-serif text-gray-600 leading-relaxed mb-4 line-clamp-3">
+        <p className="font-serif text-gray-600 dark:text-gray-400 leading-relaxed mb-4 line-clamp-3">
           {article.excerpt}
         </p>
 
         <div className="mt-auto">
-          <p className="text-sm font-sans italic text-gray-500">By <span className="text-ink not-italic font-bold">{article.authors[0].name}</span></p>
+          <p className="text-sm font-sans italic text-gray-500">By <span className="text-ink dark:text-gray-300 not-italic font-bold">{article.authors[0].name}</span></p>
         </div>
       </div>
     </div>

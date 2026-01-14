@@ -1,6 +1,9 @@
 import type { Config } from "tailwindcss";
+// import typography plugin as module
+import typography from "@tailwindcss/typography";
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -12,18 +15,20 @@ const config: Config = {
         serif: ['var(--font-cormorant)', 'serif'],
         sans: ['var(--font-lato)', 'sans-serif'],
         display: ['var(--font-cinzel)', 'serif'],
+        mono: ['Courier New', 'Courier', 'monospace'],
       },
       colors: {
-        paper: '#F9F7F1',
-        ink: '#2A2A2A',
-        accent: '#8B3A3A',
-        'accent-hover': '#6D2B2B',
-        sepia: '#E8E4D9',
+        paper: 'var(--background)',
+        ink: 'var(--foreground)',
+        accent: 'var(--accent)',
+        sepia: 'var(--sepia)',
+        'card-bg': 'var(--card-bg)',
       },
     },
   },
   plugins: [
-    require('@tailwindcss/typography'),
+    // use the typography plugin
+    typography,
   ],
 };
 export default config;

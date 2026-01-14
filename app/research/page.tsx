@@ -8,7 +8,6 @@ export const metadata: Metadata = {
 };
 
 export default async function ResearchPage() {
-  // Загружаем данные на сервере (Server Side Rendering)
   const papers = await fetchArticles('research');
 
   return (
@@ -20,7 +19,8 @@ export default async function ResearchPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
         {papers.map(paper => (
-          <div key={paper.id} className="bg-white p-6 border border-sepia shadow-sm hover:shadow-md transition-shadow">
+          // ИСПРАВЛЕНО: dark:bg-card-bg и dark:border-gray-800
+          <div key={paper.id} className="bg-white dark:bg-card-bg p-6 border border-sepia dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
              <div className="mb-4">
                  <span className="text-xs font-sans font-bold text-accent uppercase tracking-wider">PDF Available</span>
              </div>
