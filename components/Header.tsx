@@ -8,7 +8,7 @@ import { AuthModal } from './AuthModal';
 export const Header: React.FC = () => {
   const pathname = usePathname();
   const [isAuthOpen, setAuthOpen] = useState(false);
-  const [user, setUser] = useState<{name: string} | null>(null); // Mock auth state
+  const [user, setUser] = useState<{name: string} | null>(null);
 
   const isActive = (path: string) => pathname === path ? "text-accent border-b border-accent" : "text-ink hover:text-accent transition-colors";
 
@@ -33,6 +33,7 @@ export const Header: React.FC = () => {
             <nav className="hidden md:flex space-x-8 items-center font-serif text-lg tracking-wide">
               <Link href="/research" className={isActive('/research')}>Research</Link>
               <Link href="/journal" className={isActive('/journal')}>Journal</Link>
+              <Link href="/nova-express" className={isActive('/nova-express')}>Nova Express</Link>
               <Link href="/donate" className={isActive('/donate')}>Donate</Link>
             </nav>
 

@@ -1,4 +1,4 @@
-import { Article } from '../types';
+import { Article } from '@/types';
 
 // Mock data simulating Ghost API response
 const MOCK_ARTICLES: Article[] = [
@@ -49,22 +49,34 @@ const MOCK_ARTICLES: Article[] = [
     type: 'research',
     pdfUrl: '/files/digs.pdf'
   },
+  // nova items
   {
-    id: '5',
-    title: 'The Influence of Buddhism on Tang Dynasty Art',
-    excerpt: 'A visual analysis of sculpture and painting evolution during the golden age of Chinese cosmopolitanism.',
-    feature_image: 'https://picsum.photos/800/600?random=5',
-    published_at: '2023-10-28T16:45:00Z',
-    authors: [{ id: 'a5', name: 'Li Wei' }],
-    tags: ['Art History', 'China', 'Buddhism'],
-    reading_time: 10,
-    type: 'journal'
+    id: 'nova-1',
+    title: 'The Electronic Revolution: Cut-ups & Cybernetics',
+    excerpt: 'Analyzing the virus of language. "The word is now a virus." How Burroughs predicted the information age.',
+    feature_image: 'https://picsum.photos/800/600?random=6', 
+    published_at: '2024-01-10T23:23:00Z',
+    authors: [{ id: 'wsb', name: 'W. Lee' }],
+    tags: ['Cybernetics', 'Cut-up', 'Control'],
+    reading_time: 4,
+    type: 'nova'
+  },
+  {
+    id: 'nova-2',
+    title: 'Dreamachine: Flicker and Altered States',
+    excerpt: 'Brion Gysin’s stroboscopic device as a portal to the subconscious without chemicals.',
+    feature_image: 'https://picsum.photos/800/600?random=7',
+    published_at: '2024-01-12T00:00:00Z',
+    authors: [{ id: 'bg', name: 'B. Gysin' }],
+    tags: ['Psychedelia', 'Hardware', 'Consciousness'],
+    reading_time: 7,
+    type: 'nova'
   }
 ];
 
-export const fetchArticles = async (type?: 'journal' | 'research'): Promise<Article[]> => {
+export const fetchArticles = async (type?: 'journal' | 'research' | 'nova'): Promise<Article[]> => {
   // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 800));
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   if (type) {
     return MOCK_ARTICLES.filter(a => a.type === type);
@@ -73,6 +85,6 @@ export const fetchArticles = async (type?: 'journal' | 'research'): Promise<Arti
 };
 
 export const fetchArticleById = async (id: string): Promise<Article | undefined> => {
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, 300));
   return MOCK_ARTICLES.find(a => a.id === id);
 };

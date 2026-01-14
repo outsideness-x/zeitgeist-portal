@@ -21,6 +21,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-3 font-serif text-gray-300">
               <li><Link href="/research" className="hover:text-white transition-colors">Research Catalog</Link></li>
               <li><Link href="/journal" className="hover:text-white transition-colors">The Journal</Link></li>
+              <li><Link href="/nova-express" className="hover:text-white transition-colors">Nova Express</Link></li>
               <li><Link href="/upload" className="hover:text-white transition-colors">Submit Manuscript</Link></li>
               <li><Link href="/donate" className="hover:text-white transition-colors">Support Us</Link></li>
             </ul>

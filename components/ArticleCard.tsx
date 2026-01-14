@@ -8,14 +8,20 @@ interface ArticleCardProps {
 }
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = false }) => {
+  // beidge badge color based on type
+  const getBadgeColor = (type: string) => {
+    switch (type) {
+      case 'research': return 'bg-indigo-900';
+      case 'nova': return 'bg-black text-green-400 border border-green-400'; // Киберпанк стиль
+      default: return 'bg-accent text-white';
+    }
+  };
+
   return (
     <div className={`group flex flex-col ${featured ? 'md:grid md:grid-cols-2 md:gap-8 mb-12' : 'h-full'}`}>
       
       {/* Image Container */}
       <div className={`relative overflow-hidden bg-sepia ${featured ? 'h-64 md:h-96' : 'h-64'} mb-4 md:mb-0`}>
-        {/* 
-           note: using img tag for simplicity; in a real app, consider using next/image for optimization
-        */}
         <img 
           src={article.feature_image} 
           alt={article.title}
@@ -23,8 +29,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
           loading="lazy"
         />
         <div className="absolute top-4 left-4">
-          <span className={`inline-block px-3 py-1 text-xs font-sans uppercase tracking-widest text-white ${article.type === 'research' ? 'bg-indigo-900' : 'bg-accent'}`}>
-            {article.type}
+          <span className={`inline-block px-3 py-1 text-xs font-sans uppercase tracking-widest ${getBadgeColor(article.type)}`}>
+            {article.type === 'nova' ? 'NOVA EXPRESS' : article.type}
           </span>
         </div>
       </div>

@@ -14,7 +14,8 @@ export interface Article {
   authors: Author[];
   tags: string[];
   reading_time?: number;
-  type: 'journal' | 'research';
+  // add nova
+  type: 'journal' | 'research' | 'nova';
   pdfUrl?: string; // Specific for research papers
 }
 
