@@ -1,6 +1,6 @@
-import { Article } from '@/types';
+import { Article, TeamMember, LibraryBook } from '@/types';
 
-// Mock data simulating Ghost API response
+// mock data simulating ghost api response
 const MOCK_ARTICLES: Article[] = [
   {
     id: '1',
@@ -74,8 +74,70 @@ const MOCK_ARTICLES: Article[] = [
   }
 ];
 
+// mock data for team members
+const MOCK_TEAM: TeamMember[] = [
+  {
+    id: 't1',
+    name: 'Dr. Alistair P.',
+    role: 'Chief Archivist',
+    bio: 'aaaaaaaaaaaaaaaaaa',
+    photoUrl: 'https://picsum.photos/400/400?random=10'
+  },
+  {
+    id: 't2',
+    name: 'Elena V.',
+    role: 'Lead Researcher',
+    bio: 'aaaaaaaaaaaaaaaaaa',
+    photoUrl: 'https://picsum.photos/400/400?random=11'
+  },
+  {
+    id: 't3',
+    name: 'K. H. Chen',
+    role: 'Digital Preservation',
+    bio: 'aaaaaaaaaaaaaaaaaa',
+    photoUrl: 'https://picsum.photos/400/400?random=12'
+  }
+];
+
+// mock data for library books
+const MOCK_LIBRARY: LibraryBook[] = [
+  {
+    id: 'b1',
+    title: 'The Seven Pillars of Wisdom',
+    author: 'T. E. Lawrence',
+    coverImage: 'https://picsum.photos/300/450?random=20',
+    description: 'A biographical account of his service during the Arab Revolt.',
+    longDescription: 'Seven Pillars of Wisdom is the autobiographical account of the experiences of British Army Colonel T. E. Lawrence ("Lawrence of Arabia") while serving as a military advisor to Bedouin forces during the Arab Revolt against the Ottoman Empire of 1916 to 1918.',
+    pdfUrl: '#', // replace with real path like /library/book1.pdf
+    publishedYear: '1926',
+    language: 'English'
+  },
+  {
+    id: 'b2',
+    title: 'The Conference of the Birds',
+    author: 'Attar of Nishapur',
+    coverImage: 'https://picsum.photos/300/450?random=21',
+    description: 'A celebrated literary masterpiece of Persian literature by poet Farid ud-Din Attar.',
+    longDescription: 'The Conference of the Birds or Speech of the Birds is a celebrated literary masterpiece of Persian literature by poet Farid ud-Din Attar, commonly known as Attar of Nishapur. It is a poem of approximately 4500 lines written in Persian.',
+    pdfUrl: '#',
+    publishedYear: '1177',
+    language: 'Persian / English Translation'
+  },
+  {
+    id: 'b3',
+    title: 'Orientalism',
+    author: 'Edward W. Said',
+    coverImage: 'https://picsum.photos/300/450?random=22',
+    description: 'A critique of the cultural representations that are the bases of Orientalism.',
+    longDescription: 'Orientalism is a 1978 book by Edward W. Said, in which the author discusses Orientalism, defined as the West\'s patronizing representations of "The East"—the societies and peoples who inhabit the places of Asia, North Africa, and the Middle East.',
+    pdfUrl: '#',
+    publishedYear: '1978',
+    language: 'English'
+  }
+];
+
 export const fetchArticles = async (type?: 'journal' | 'research' | 'nova'): Promise<Article[]> => {
-  // Simulate network delay
+  // simulate network delay
   await new Promise(resolve => setTimeout(resolve, 500));
   
   if (type) {
@@ -87,4 +149,22 @@ export const fetchArticles = async (type?: 'journal' | 'research' | 'nova'): Pro
 export const fetchArticleById = async (id: string): Promise<Article | undefined> => {
   await new Promise(resolve => setTimeout(resolve, 300));
   return MOCK_ARTICLES.find(a => a.id === id);
+};
+
+// fetch team members
+export const fetchTeamMembers = async (): Promise<TeamMember[]> => {
+  await new Promise(resolve => setTimeout(resolve, 300));
+  return MOCK_TEAM;
+};
+
+// fetch library books
+export const fetchLibraryBooks = async (): Promise<LibraryBook[]> => {
+  await new Promise(resolve => setTimeout(resolve, 400));
+  return MOCK_LIBRARY;
+};
+
+// fetch single book
+export const fetchBookById = async (id: string): Promise<LibraryBook | undefined> => {
+  await new Promise(resolve => setTimeout(resolve, 200));
+  return MOCK_LIBRARY.find(b => b.id === id);
 };

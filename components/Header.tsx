@@ -4,14 +4,14 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AuthModal } from './AuthModal';
-import { ThemeToggle } from './ThemeToggle'; // <--- Импорт
+import { ThemeToggle } from './ThemeToggle';
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
   const [isAuthOpen, setAuthOpen] = useState(false);
   const [user, setUser] = useState<{name: string} | null>(null);
 
-  const isActive = (path: string) => pathname === path ? "text-accent border-b border-accent" : "text-ink hover:text-accent transition-colors";
+  const isActive = (path: string) => pathname === path ? "text-accent border-b border-accent" : "text-ink hover:text-accent transition-colors dark:text-gray-300 dark:hover:text-white";
 
   const handleLoginSuccess = (username: string) => {
     setUser({ name: username });
@@ -23,30 +23,31 @@ export const Header: React.FC = () => {
       <header className="sticky top-0 z-50 bg-paper/95 backdrop-blur-sm border-b border-sepia shadow-sm transition-all duration-300 dark:bg-black/90 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            {/* Logo */}
+            {/* logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="font-display text-3xl tracking-widest text-ink hover:text-accent transition-colors">
+              <Link href="/" className="font-display text-3xl tracking-widest text-ink hover:text-accent transition-colors dark:text-gray-100">
                 ZEITGEIST
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-8 items-center font-serif text-lg tracking-wide">
+            {/* desktop navigation */}
+            <nav className="hidden md:flex space-x-6 items-center font-serif text-lg tracking-wide">
               <Link href="/research" className={isActive('/research')}>Research</Link>
               <Link href="/journal" className={isActive('/journal')}>Journal</Link>
-              <Link href="/nova-express" className={isActive('/nova-express')}>Nova Express</Link>
-              <Link href="/donate" className={isActive('/donate')}>Donate</Link>
+              <Link href="/library" className={isActive('/library')}>Library</Link>
+              <Link href="/nova-express" className={isActive('/nova-express')}>Nova</Link>
+              <Link href="/team" className={isActive('/team')}>Team</Link>
             </nav>
 
-            {/* Actions */}
+            {/* actions */}
             <div className="flex items-center space-x-4">
-              <ThemeToggle /> {/* <--- Вставили переключатель */}
+              <ThemeToggle />
 
               <Link 
                 href="/upload" 
-                className="hidden md:inline-flex items-center px-4 py-2 border border-accent text-accent hover:bg-accent hover:text-white transition-all font-sans text-sm uppercase tracking-wider duration-300"
+                className="hidden md:inline-flex items-center px-4 py-2 border border-accent text-accent hover:bg-accent hover:text-white transition-all font-sans text-xs uppercase tracking-wider duration-300"
               >
-                Upload Paper
+                Upload
               </Link>
               
               {user ? (
@@ -59,7 +60,7 @@ export const Header: React.FC = () => {
               ) : (
                 <button 
                   onClick={() => setAuthOpen(true)}
-                  className="text-ink font-serif italic hover:text-accent transition-colors"
+                  className="text-ink font-serif italic hover:text-accent transition-colors dark:text-gray-300"
                 >
                   Log In
                 </button>
