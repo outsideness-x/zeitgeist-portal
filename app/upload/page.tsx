@@ -1,8 +1,26 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/components/AuthProvider';
+import { backendRequest } from '@/services/backend/client';
+
+type SubmissionCreateResponse = {
+  submission: {
+    id: string;
+    status: string;
+  };
+};
+
+type UploadInitResponse = {
+  submissionId: string;
+  storageKey: string;
+  uploadUrl: string;
+  requiredContentType: string;
+};
 
 export default function UploadPage() {
+  const { user, csrfToken, loading: authLoading } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [keywords, setKeywords] = useState('');
@@ -10,7 +28,7 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'completed'>('idle');
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
 
   const titleId = 'research-title';
   const keywordsId = 'research-keywords';
@@ -28,13 +46,13 @@ export default function UploadPage() {
 
     if (!isPdf(selectedFile)) {
       setFile(null);
-      setErrorMessage('Допускаются только PDF-файлы.');
+      setErrorMessage('допускаются только pdf-файлы.');
       return;
     }
 
     if (selectedFile.size > maxFileSizeMb * 1024 * 1024) {
       setFile(null);
-      setErrorMessage(`Размер файла должен быть меньше ${maxFileSizeMb}MB.`);
+      setErrorMessage(`размер файла должен быть меньше ${maxFileSizeMb}mb.`);
       return;
     }
 
@@ -52,11 +70,47 @@ export default function UploadPage() {
     );
   }, [abstract, file, keywords, title]);
 
-  const handleUpload = (e: React.FormEvent<HTMLFormElement>) => {
+  const uploadFileByPresignedUrl = async (uploadUrl: string, selectedFile: File, contentType: string) => {
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', contentType);
+
+      // this progress path is wired to real object storage upload bytes
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) {
+          return;
+        }
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setProgress(percent);
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+          return;
+        }
+        reject(new Error(`upload failed with status ${xhr.status}`));
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('upload failed due to a network error'));
+      };
+
+      xhr.send(selectedFile);
+    });
+  };
+
+  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (!user || !csrfToken) {
+      setErrorMessage('для отправки рукописи требуется авторизация.');
+      return;
+    }
+
     if (!isFormValid || !file) {
-      setErrorMessage('Пожалуйста, заполните все поля и прикрепите корректный PDF перед отправкой.');
+      setErrorMessage('пожалуйста, заполните все поля и прикрепите корректный pdf перед отправкой.');
       return;
     }
 
@@ -64,147 +118,178 @@ export default function UploadPage() {
     setUploadStatus('uploading');
     setProgress(0);
 
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    intervalRef.current = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-          }
-          setUploadStatus('completed');
-          return 100;
-        }
-        return prev + 10;
+    try {
+      const createResponse = await backendRequest<SubmissionCreateResponse>({
+        path: '/api/submissions',
+        method: 'POST',
+        csrfToken,
+        body: {
+          title,
+          keywords,
+          abstract,
+        },
       });
-    }, 200);
+
+      const initResponse = await backendRequest<UploadInitResponse>({
+        path: `/api/submissions/${createResponse.submission.id}/upload/init`,
+        method: 'POST',
+        csrfToken,
+        body: {
+          originalName: file.name,
+        },
+      });
+
+      await uploadFileByPresignedUrl(initResponse.uploadUrl, file, initResponse.requiredContentType);
+
+      await backendRequest({
+        path: `/api/submissions/${createResponse.submission.id}/upload/complete`,
+        method: 'POST',
+        csrfToken,
+        body: {
+          storageKey: initResponse.storageKey,
+          originalName: file.name,
+        },
+      });
+
+      setSubmittedId(createResponse.submission.id);
+      setUploadStatus('completed');
+      setProgress(100);
+    } catch (error) {
+      setUploadStatus('idle');
+      setProgress(0);
+      setErrorMessage(error instanceof Error ? error.message : 'не удалось отправить рукопись.');
+    }
   };
 
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
+  if (authLoading) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-16">
+        <p className="text-center text-gray-500">загрузка профиля...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
-      <h1 className="font-display text-4xl mb-8 text-center">Отправить рукопись</h1>
-      
+      <h1 className="font-display text-4xl mb-8 text-center">отправить рукопись</h1>
+
+      {!user && (
+        <div className="mb-8 border border-accent/40 bg-sepia/30 p-4 text-sm text-gray-700">
+          чтобы отправить рукопись, выполните вход через кнопку в шапке сайта.
+        </div>
+      )}
+
       <form onSubmit={handleUpload} className="bg-white p-8 border border-sepia shadow-lg">
-        
-        {/* Title Input */}
         <div className="mb-6">
-          <label htmlFor={titleId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Название исследования</label>
-          <input 
+          <label htmlFor={titleId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">название исследования</label>
+          <input
             id={titleId}
-            type="text" 
+            type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full text-lg font-serif border-b-2 border-gray-200 focus:border-accent focus-visible:ring-1 focus-visible:ring-accent outline-none py-2 bg-transparent transition-colors"
-            placeholder="например: Экономическое влияние Шелкового пути"
+            placeholder="например: экономическое влияние шелкового пути"
             required
             minLength={5}
           />
         </div>
 
-        {/* Keywords */}
         <div className="mb-6">
-          <label htmlFor={keywordsId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Ключевые слова (через запятую)</label>
-          <input 
+          <label htmlFor={keywordsId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">ключевые слова (через запятую)</label>
+          <input
             id={keywordsId}
-            type="text" 
+            type="text"
             value={keywords}
             onChange={(e) => setKeywords(e.target.value)}
             className="w-full font-serif border-b-2 border-gray-200 focus:border-accent focus-visible:ring-1 focus-visible:ring-accent outline-none py-2 bg-transparent transition-colors"
-            placeholder="История, Экономика, Азия..."
+            placeholder="история, экономика, азия..."
             required
           />
         </div>
 
-        {/* Abstract */}
         <div className="mb-8">
-          <label htmlFor={abstractId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Аннотация</label>
-          <textarea 
+          <label htmlFor={abstractId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">аннотация</label>
+          <textarea
             id={abstractId}
             value={abstract}
             onChange={(e) => setAbstract(e.target.value)}
             rows={6}
             className="w-full bg-stone-50 border border-gray-200 p-4 font-serif text-gray-700 focus:outline-none focus:ring-1 focus:ring-accent"
-            placeholder="Введите аннотацию..."
+            placeholder="введите аннотацию..."
             required
             minLength={40}
           />
-          <p className="mt-2 text-xs text-gray-500">Минимум 40 символов.</p>
+          <p className="mt-2 text-xs text-gray-500">минимум 40 символов.</p>
         </div>
 
-        {/* File Upload */}
         <div className="mb-8">
-           <label htmlFor={fileId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-4 text-gray-500">Загрузите PDF</label>
-           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-accent transition-colors cursor-pointer relative bg-stone-50">
-             <input 
-               id={fileId}
-               type="file" 
-               accept=".pdf"
-               onChange={handleFileChange}
-               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-               required
-             />
-             <div className="pointer-events-none">
-                <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <p className="mt-2 text-sm text-gray-600 font-sans">
-                  {file ? file.name : "Перетащите файл или нажмите, чтобы выбрать PDF"}
-                </p>
-             </div>
-           </div>
-           <p className="mt-2 text-xs text-gray-500">Только PDF, до {maxFileSizeMb}MB.</p>
-           {errorMessage && (
-             <p className="mt-2 text-sm text-red-600" role="alert">
-               {errorMessage}
-             </p>
-           )}
+          <label htmlFor={fileId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-4 text-gray-500">загрузите pdf</label>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-accent transition-colors cursor-pointer relative bg-stone-50">
+            <input
+              id={fileId}
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              required
+            />
+            <div className="pointer-events-none">
+              <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <p className="mt-2 text-sm text-gray-600 font-sans">
+                {file ? file.name : 'перетащите файл или нажмите, чтобы выбрать pdf'}
+              </p>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-gray-500">только pdf, до {maxFileSizeMb}mb.</p>
+          {errorMessage && (
+            <p className="mt-2 text-sm text-red-600" role="alert">
+              {errorMessage}
+            </p>
+          )}
         </div>
 
-        {/* Progress Bar */}
         {uploadStatus === 'uploading' && (
           <div className="mb-8">
-             <div className="flex justify-between text-xs font-sans uppercase mb-1" aria-live="polite">
-               <span>Загрузка...</span>
-               <span>{progress}%</span>
-             </div>
-             <div className="w-full bg-gray-200 rounded-full h-2.5">
-               <div 
-                 className="bg-accent h-2.5 rounded-full transition-all duration-300" 
-                 style={{ width: `${progress}%` }}
-                 role="progressbar"
-                 aria-valuemin={0}
-                 aria-valuemax={100}
-                 aria-valuenow={progress}
-               ></div>
-             </div>
+            <div className="flex justify-between text-xs font-sans uppercase mb-1" aria-live="polite">
+              <span>загрузка...</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div
+                className="bg-accent h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress}
+              ></div>
+            </div>
           </div>
         )}
 
         {uploadStatus === 'completed' && (
           <p className="mb-8 rounded-sm border border-green-600 bg-green-50 px-4 py-3 text-green-800" role="status">
-            Материал получен. Редакционная проверка начнется в ближайшее время.
+            материал отправлен и загружен. id заявки: {submittedId}
           </p>
         )}
 
-        {/* Submit Button */}
-        <button 
+        {submittedId && (
+          <div className="mb-8 text-sm text-gray-600">
+            <Link href={`/dashboard/submissions/${submittedId}`} className="text-accent underline">
+              открыть карточку заявки
+            </Link>
+          </div>
+        )}
+
+        <button
           type="submit"
-          disabled={!isFormValid || uploadStatus === 'uploading' || uploadStatus === 'completed'}
+          disabled={!isFormValid || uploadStatus === 'uploading' || uploadStatus === 'completed' || !user}
           className="w-full bg-ink text-white py-4 font-sans uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          {uploadStatus === 'completed' ? 'Материал отправлен' : 'Отправить на проверку'}
+          {uploadStatus === 'completed' ? 'материал отправлен' : 'отправить на проверку'}
         </button>
-
       </form>
     </div>
   );

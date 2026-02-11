@@ -1,4 +1,4 @@
-import { fetchLibraryBooks } from '@/services/ghostService';
+import { fetchLibraryBooks } from '@/services/content';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import Image from 'next/image';

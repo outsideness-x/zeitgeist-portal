@@ -5,13 +5,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AuthModal } from './AuthModal';
 import { ThemeToggle } from './ThemeToggle';
+import { useAuth } from './AuthProvider';
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
   const [isAuthOpen, setAuthOpen] = useState(false);
   const [isMenuOpen, setMenuOpen] = useState(false);
-  const [user, setUser] = useState<{name: string} | null>(null);
-  const navItems = [
+  const [authError, setAuthError] = useState<string | null>(null);
+  const { user, logout, loading } = useAuth();
+
+  const baseNavItems = [
     { href: '/research', label: 'Исследования' },
     { href: '/journal', label: 'Журнал' },
     { href: '/library', label: 'Библиотека' },
@@ -19,11 +22,19 @@ export const Header: React.FC = () => {
     { href: '/team', label: 'Команда' },
   ];
 
+  const navItems = user
+    ? [...baseNavItems, { href: '/dashboard/submissions', label: 'Кабинет' }]
+    : baseNavItems;
+
   const isActive = (path: string) => pathname === path ? "text-accent border-b border-accent" : "text-ink hover:text-accent transition-colors dark:text-gray-300 dark:hover:text-white";
 
-  const handleLoginSuccess = (username: string) => {
-    setUser({ name: username });
-    setAuthOpen(false);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setAuthError(null);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Не удалось выйти из аккаунта');
+    }
   };
 
   return (
@@ -80,19 +91,24 @@ export const Header: React.FC = () => {
                    <div className="h-8 w-8 rounded-full bg-accent text-white flex items-center justify-center font-bold">
                       {user.name.charAt(0)}
                    </div>
-                   <button onClick={() => setUser(null)} className="text-gray-500 hover:text-red-500 text-xs uppercase">Выйти</button>
+                   <button onClick={() => void handleLogout()} className="text-gray-500 hover:text-red-500 text-xs uppercase">Выйти</button>
                 </div>
               ) : (
                 <button 
                   onClick={() => setAuthOpen(true)}
                   className="text-ink font-serif italic hover:text-accent transition-colors dark:text-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
-                  Войти
+                  {loading ? '...' : 'Войти'}
                 </button>
               )}
             </div>
           </div>
         </div>
+        {authError && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3">
+            <p className="text-sm text-red-600">{authError}</p>
+          </div>
+        )}
 
         {isMenuOpen && (
           <div id="mobile-menu" className="md:hidden border-t border-sepia dark:border-gray-800 px-4 py-4 bg-paper dark:bg-black" aria-label="Мобильная навигация">
@@ -134,11 +150,7 @@ export const Header: React.FC = () => {
         )}
       </header>
 
-      <AuthModal 
-        isOpen={isAuthOpen} 
-        onClose={() => setAuthOpen(false)} 
-        onLoginSuccess={handleLoginSuccess}
-      />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setAuthOpen(false)} />
     </>
   );
 };

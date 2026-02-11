@@ -2,20 +2,21 @@
 
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { AuthMode } from '@/types';
+import { useAuth } from './AuthProvider';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: (username: string) => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
-  const simulatedAuthDelayMs = Number(process.env.NEXT_PUBLIC_AUTH_DELAY_MS ?? 0);
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+  const { login, register } = useAuth();
   const [mode, setMode] = useState<AuthMode>(AuthMode.LOGIN);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const emailInputRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
   const subtitleId = useId();
@@ -49,14 +50,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    if (simulatedAuthDelayMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, simulatedAuthDelayMs));
+    setErrorMessage('');
+
+    try {
+      if (mode === AuthMode.LOGIN) {
+        await login(email, password);
+      } else {
+        await register(name, email, password);
+      }
+
+      setPassword('');
+      setEmail('');
+      setName('');
+      onClose();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Ошибка авторизации');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    
-    // Mock success
-    const username = name || email.split('@')[0];
-    onLoginSuccess(username);
   };
 
   return (
@@ -140,6 +151,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             {loading ? 'Обработка...' : (mode === AuthMode.LOGIN ? 'Войти' : 'Зарегистрироваться')}
           </button>
         </form>
+
+        {errorMessage && (
+          <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
+        )}
 
         <div className="mt-6 text-center">
           <button 

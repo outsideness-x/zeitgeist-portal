@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { fetchArticles } from '@/services/ghostService';
+import { fetchArticles } from '@/services/content';
 import { ArticleCard } from '@/components/ArticleCard';
 
 export default async function Home() {
   // data fetching on server
-  const articles = await fetchArticles();
+  const articlesResult = await fetchArticles(undefined, { page: 1, pageSize: 20 });
+  const articles = articlesResult.items;
 
   const featured = articles[0];
   const journalArticles = articles.filter(a => a.type === 'journal').slice(1, 4);

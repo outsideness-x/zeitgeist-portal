@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("BACKEND_DATABASE_URL")
+}
+
+enum Role {
+  READER
+  RESEARCHER
+  REVIEWER
+  EDITOR
+  ADMIN
+}
+
+enum SubmissionStatus {
+  DRAFT
+  UPLOADING
+  UPLOADED
+  IN_REVIEW
+  NEEDS_CHANGES
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         Role         @default(READER)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  sessions     Session[]
+  submissions  Submission[] @relation("submission_author")
+  auditLogs    AuditLog[]   @relation("audit_actor")
+  libraryItems LibraryItem[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  csrfToken String
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Submission {
+  id           String           @id @default(cuid())
+  title        String
+  keywords     String[]
+  abstract     String
+  authorUserId String?
+  status       SubmissionStatus @default(DRAFT)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  author       User?            @relation("submission_author", fields: [authorUserId], references: [id], onDelete: SetNull)
+  files        SubmissionFile[]
+
+  @@index([authorUserId])
+  @@index([status])
+}
+
+model SubmissionFile {
+  id           String     @id @default(cuid())
+  submissionId String
+  storageKey   String     @unique
+  sizeBytes    Int
+  sha256       String
+  mime         String
+  originalName String
+  uploadedAt   DateTime   @default(now())
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+}
+
+model LibraryItem {
+  id           String   @id @default(cuid())
+  title        String
+  author       String
+  description  String
+  storageKey   String   @unique
+  mime         String
+  sizeBytes    Int
+  publishedYear String
+  language     String
+  createdById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([createdById])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  actor       User?    @relation("audit_actor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

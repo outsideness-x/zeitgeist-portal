@@ -1,4 +1,4 @@
-import { fetchArticleById } from '@/services/ghostService';
+import { fetchArticleById } from '@/services/content';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Image from 'next/image';
@@ -107,7 +107,7 @@ export default async function ArticlePage({ params }: Props) {
         {article.type === 'research' && article.pdfUrl && (
           <div className="mt-12 p-6 bg-stone-100 dark:bg-gray-900 border border-stone-200 dark:border-gray-700 text-center">
             <h4 className="font-sans font-bold uppercase mb-2 dark:text-gray-200">Полный текст исследования</h4>
-            <a href={article.pdfUrl} className="text-accent underline hover:text-ink dark:hover:text-white">Скачать PDF (2.4 MB)</a>
+            <a href={article.pdfUrl} className="text-accent underline hover:text-ink dark:hover:text-white">Скачать PDF</a>
           </div>
         )}
       </div>

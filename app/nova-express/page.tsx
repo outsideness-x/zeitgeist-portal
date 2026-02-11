@@ -1,4 +1,4 @@
-import { fetchArticles } from '@/services/ghostService';
+import { fetchArticles } from '@/services/content';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
@@ -7,8 +7,14 @@ export const metadata: Metadata = {
   description: 'Кибернетика, кат-ап и электронная революция.',
 };
 
-export default async function NovaExpressPage() {
-  const articles = await fetchArticles('nova');
+type NovaExpressPageProps = {
+  searchParams?: Promise<{ page?: string }>;
+};
+
+export default async function NovaExpressPage({ searchParams }: NovaExpressPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const page = Math.max(1, Number(resolvedSearchParams?.page ?? '1') || 1);
+  const articles = await fetchArticles('nova', { page, pageSize: 9 });
 
   return (
     <div className="min-h-screen relative overflow-hidden font-mono">
@@ -38,7 +44,7 @@ export default async function NovaExpressPage() {
 
         {/* Cyber Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {articles.map(article => (
+          {articles.items.map(article => (
             // fx card design
             <div key={article.id} className="group relative bg-paper dark:bg-card-bg border-2 border-ink dark:border-gray-700 hover:border-accent dark:hover:border-green-500 transition-colors duration-300 p-6">
                
@@ -74,6 +80,26 @@ export default async function NovaExpressPage() {
                </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-12 flex items-center justify-between">
+          <Link
+            href={page > 1 ? `/nova-express?page=${page - 1}` : '#'}
+            aria-disabled={page <= 1}
+            className={`px-4 py-2 border border-sepia text-sm uppercase tracking-wider ${page <= 1 ? 'pointer-events-none opacity-40' : 'hover:border-accent'}`}
+          >
+            Назад
+          </Link>
+          <span className="text-sm text-gray-500">
+            Страница {articles.page} из {articles.totalPages}
+          </span>
+          <Link
+            href={page < articles.totalPages ? `/nova-express?page=${page + 1}` : '#'}
+            aria-disabled={page >= articles.totalPages}
+            className={`px-4 py-2 border border-sepia text-sm uppercase tracking-wider ${page >= articles.totalPages ? 'pointer-events-none opacity-40' : 'hover:border-accent'}`}
+          >
+            Вперед
+          </Link>
         </div>
       </div>
     </div>

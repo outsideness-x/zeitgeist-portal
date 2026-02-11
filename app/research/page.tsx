@@ -1,14 +1,21 @@
-import { fetchArticles } from '@/services/ghostService';
+import { fetchArticles } from '@/services/content';
 import { ArticleCard } from '@/components/ArticleCard';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Каталог исследований | Zeitgeist',
   description: 'Рецензируемые статьи, архивные находки и академические материалы.',
 };
 
-export default async function ResearchPage() {
-  const papers = await fetchArticles('research');
+type ResearchPageProps = {
+  searchParams?: Promise<{ page?: string }>;
+};
+
+export default async function ResearchPage({ searchParams }: ResearchPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const page = Math.max(1, Number(resolvedSearchParams?.page ?? '1') || 1);
+  const papers = await fetchArticles('research', { page, pageSize: 9 });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -18,15 +25,35 @@ export default async function ResearchPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {papers.map(paper => (
+        {papers.items.map(paper => (
           // ИСПРАВЛЕНО: dark:bg-card-bg и dark:border-gray-800
           <div key={paper.id} className="bg-white dark:bg-card-bg p-6 border border-sepia dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
              <div className="mb-4">
-                 <span className="text-xs font-sans font-bold text-accent uppercase tracking-wider">PDF доступен</span>
+                 <span className="text-xs font-sans font-bold text-accent uppercase tracking-wider">{paper.pdfUrl ? 'pdf доступен' : 'pdf недоступен'}</span>
              </div>
              <ArticleCard article={paper} />
           </div>
         ))}
+      </div>
+
+      <div className="mt-12 flex items-center justify-between">
+        <Link
+          href={page > 1 ? `/research?page=${page - 1}` : '#'}
+          aria-disabled={page <= 1}
+          className={`px-4 py-2 border border-sepia text-sm uppercase tracking-wider ${page <= 1 ? 'pointer-events-none opacity-40' : 'hover:border-accent'}`}
+        >
+          Назад
+        </Link>
+        <span className="text-sm text-gray-500">
+          Страница {papers.page} из {papers.totalPages}
+        </span>
+        <Link
+          href={page < papers.totalPages ? `/research?page=${page + 1}` : '#'}
+          aria-disabled={page >= papers.totalPages}
+          className={`px-4 py-2 border border-sepia text-sm uppercase tracking-wider ${page >= papers.totalPages ? 'pointer-events-none opacity-40' : 'hover:border-accent'}`}
+        >
+          Вперед
+        </Link>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { fetchTeamMembers } from '@/services/ghostService';
+import { fetchTeamMembers } from '@/services/content';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 

@@ -1,4 +1,4 @@
-import { fetchBookById } from '@/services/ghostService';
+import { fetchBookById } from '@/services/content';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
