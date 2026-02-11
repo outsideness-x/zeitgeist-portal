@@ -14,9 +14,9 @@ export default async function Home() {
     <div className="pb-20">
       {/* Hero Section - FIXED: Colors for Dark Mode */}
       <section className="bg-paper text-ink dark:bg-black dark:text-gray-100 py-20 px-4 text-center transition-colors duration-300 border-b border-transparent dark:border-gray-800">
-        <h1 className="font-display text-5xl md:text-7xl mb-6">The Zeitgeist</h1>
+        <h1 className="font-display text-5xl md:text-7xl mb-6">Zeitgeist</h1>
         <p className="font-serif text-xl md:text-2xl text-gray-500 dark:text-gray-400 italic max-w-2xl mx-auto">
-          &quot;The spirit of the times.&quot; Uncovering the history, culture, and manuscripts of the East.
+          &quot;Дух времени.&quot; Исследуем историю, культуру и рукописи Востока.
         </p>
       </section>
 
@@ -34,8 +34,8 @@ export default async function Home() {
           {/* Main Feed (Journal) */}
           <div className="lg:col-span-8">
             <div className="flex items-baseline justify-between mb-8 border-b-2 border-black dark:border-gray-700 pb-2">
-              <h2 className="font-display text-3xl">From The Journal</h2>
-              <Link href="/journal" className="font-sans text-sm font-bold uppercase text-accent hover:text-black dark:hover:text-white transition-colors">View All</Link>
+              <h2 className="font-display text-3xl">Из журнала</h2>
+              <Link href="/journal" className="font-sans text-sm font-bold uppercase text-accent hover:text-black dark:hover:text-white transition-colors">Смотреть все</Link>
             </div>
             
             <div className="space-y-12">
@@ -51,8 +51,8 @@ export default async function Home() {
             {/* Research List */}
             <div>
               <div className="flex items-baseline justify-between mb-8 border-b-2 border-accent pb-2">
-                <h2 className="font-display text-2xl text-accent">Latest Research</h2>
-                <Link href="/research" className="font-sans text-xs font-bold uppercase text-gray-500 hover:text-accent transition-colors">Catalog</Link>
+                <h2 className="font-display text-2xl text-accent">Последние исследования</h2>
+                <Link href="/research" className="font-sans text-xs font-bold uppercase text-gray-500 hover:text-accent transition-colors">Каталог</Link>
               </div>
 
               <div className="space-y-6">
@@ -75,10 +75,10 @@ export default async function Home() {
 
             {/* Donation CTA */}
             <div className="bg-sepia dark:bg-gray-900 p-8 text-center border border-gray-300 dark:border-gray-700 transition-colors">
-                <h3 className="font-display text-2xl mb-4">Support Our Work</h3>
-                <p className="font-serif text-sm mb-6 text-gray-700 dark:text-gray-400">Help us keep the archives open and free for all scholars.</p>
+                <h3 className="font-display text-2xl mb-4">Поддержите нашу работу</h3>
+                <p className="font-serif text-sm mb-6 text-gray-700 dark:text-gray-400">Помогите нам сохранять архивы открытыми и бесплатными для всех исследователей.</p>
                 <Link href="/donate" className="inline-block px-6 py-3 bg-accent text-white font-sans uppercase text-sm tracking-widest hover:bg-black dark:hover:bg-gray-700 transition-colors">
-                    Donate Now
+                    Поддержать сейчас
                 </Link>
             </div>
 

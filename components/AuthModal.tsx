@@ -66,7 +66,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         type="button"
         className="absolute inset-0 bg-ink/50 backdrop-blur-sm"
         onClick={onClose}
-        aria-label="Close authentication dialog"
+        aria-label="Закрыть окно авторизации"
       />
 
       {/* Modal */}
@@ -86,16 +86,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         </button>
 
         <h2 id={titleId} className="font-display text-3xl text-center mb-2">
-          {mode === AuthMode.LOGIN ? 'Welcome Back' : 'Join Zeitgeist'}
+          {mode === AuthMode.LOGIN ? 'С возвращением' : 'Присоединиться к Zeitgeist'}
         </h2>
         <p id={subtitleId} className="text-center font-serif text-gray-500 italic mb-8">
-          {mode === AuthMode.LOGIN ? 'Access your research library' : 'Start your journey into the archives'}
+          {mode === AuthMode.LOGIN ? 'Войдите в свою исследовательскую библиотеку' : 'Начните ваше путешествие по архивам'}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === AuthMode.REGISTER && (
             <div>
-              <label htmlFor={nameInputId} className="block text-xs font-sans font-bold uppercase tracking-wider mb-1 text-gray-500">Full Name</label>
+              <label htmlFor={nameInputId} className="block text-xs font-sans font-bold uppercase tracking-wider mb-1 text-gray-500">Полное имя</label>
               <input 
                 id={nameInputId}
                 type="text" 
@@ -108,7 +108,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           )}
           
           <div>
-            <label htmlFor={emailInputId} className="block text-xs font-sans font-bold uppercase tracking-wider mb-1 text-gray-500">Email Address</label>
+            <label htmlFor={emailInputId} className="block text-xs font-sans font-bold uppercase tracking-wider mb-1 text-gray-500">Эл. почта</label>
             <input 
               ref={emailInputRef}
               id={emailInputId}
@@ -121,7 +121,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           </div>
 
           <div>
-            <label htmlFor={passwordInputId} className="block text-xs font-sans font-bold uppercase tracking-wider mb-1 text-gray-500">Password</label>
+            <label htmlFor={passwordInputId} className="block text-xs font-sans font-bold uppercase tracking-wider mb-1 text-gray-500">Пароль</label>
             <input 
               id={passwordInputId}
               type="password" 
@@ -137,7 +137,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             disabled={loading}
             className="w-full bg-accent text-white py-3 font-sans uppercase tracking-widest text-sm hover:bg-black dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Processing...' : (mode === AuthMode.LOGIN ? 'Sign In' : 'Register')}
+            {loading ? 'Обработка...' : (mode === AuthMode.LOGIN ? 'Войти' : 'Зарегистрироваться')}
           </button>
         </form>
 
@@ -147,7 +147,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             onClick={() => setMode(mode === AuthMode.LOGIN ? AuthMode.REGISTER : AuthMode.LOGIN)}
             className="text-sm font-sans text-gray-500 hover:text-accent underline underline-offset-4"
           >
-            {mode === AuthMode.LOGIN ? "Don't have an account? Sign up" : "Already a member? Log in"}
+            {mode === AuthMode.LOGIN ? "Нет аккаунта? Зарегистрируйтесь" : "Уже есть аккаунт? Войдите"}
           </button>
         </div>
       </div>

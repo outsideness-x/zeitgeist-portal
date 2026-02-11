@@ -12,10 +12,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const book = await fetchBookById(id);
 
-  if (!book) return { title: 'Book Not Found' };
+  if (!book) return { title: 'Книга не найдена' };
 
   return {
-    title: `${book.title} | Zeitgeist Library`,
+    title: `${book.title} | Библиотека Zeitgeist`,
     description: book.description,
   };
 }
@@ -37,7 +37,7 @@ export default async function BookDetailPage({ params }: Props) {
         {/* back link */}
         <div className="mb-8">
           <Link href="/library" className="text-xs font-sans font-bold uppercase tracking-widest text-gray-500 hover:text-accent transition-colors">
-            &larr; Back to Library
+            &larr; Назад к библиотеке
           </Link>
         </div>
 
@@ -64,17 +64,17 @@ export default async function BookDetailPage({ params }: Props) {
                   {book.title}
                 </h1>
                 <p className="font-serif text-2xl text-gray-500 dark:text-gray-400 italic">
-                  by {book.author}
+                  автор: {book.author}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-8 text-sm font-sans">
                 <div>
-                  <span className="block text-gray-400 uppercase tracking-wider text-xs mb-1">Published</span>
+                  <span className="block text-gray-400 uppercase tracking-wider text-xs mb-1">Год издания</span>
                   <span className="text-ink dark:text-gray-300">{book.publishedYear}</span>
                 </div>
                 <div>
-                  <span className="block text-gray-400 uppercase tracking-wider text-xs mb-1">Language</span>
+                  <span className="block text-gray-400 uppercase tracking-wider text-xs mb-1">Язык</span>
                   <span className="text-ink dark:text-gray-300">{book.language}</span>
                 </div>
               </div>
@@ -85,14 +85,14 @@ export default async function BookDetailPage({ params }: Props) {
 
               {/* download action */}
               <div className="bg-stone-50 dark:bg-gray-900/50 p-6 border border-sepia dark:border-gray-700">
-                <h4 className="font-sans font-bold uppercase text-sm mb-4 text-ink dark:text-gray-200">Digital Access</h4>
+                <h4 className="font-sans font-bold uppercase text-sm mb-4 text-ink dark:text-gray-200">Цифровой доступ</h4>
                 {hasValidPdf ? (
                   <a
                     href={book.pdfUrl}
                     download
                     className="inline-flex items-center justify-center w-full md:w-auto px-8 py-3 bg-accent text-white font-sans uppercase text-sm tracking-widest hover:bg-black dark:hover:bg-gray-700 transition-colors"
                   >
-                    Download PDF
+                    Скачать PDF
                     <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                   </a>
                 ) : (
@@ -101,13 +101,13 @@ export default async function BookDetailPage({ params }: Props) {
                     disabled
                     className="inline-flex items-center justify-center w-full md:w-auto px-8 py-3 bg-gray-400 text-white font-sans uppercase text-sm tracking-widest cursor-not-allowed"
                   >
-                    PDF Unavailable
+                    PDF недоступен
                   </button>
                 )}
                 <p className="mt-3 text-xs text-gray-400 text-center md:text-left">
                   {hasValidPdf
-                    ? 'For academic and research purposes only.'
-                    : 'Digital copy coming soon. Please check back later.'}
+                    ? 'Только для академических и исследовательских целей.'
+                    : 'Цифровая копия скоро появится. Пожалуйста, зайдите позже.'}
                 </p>
               </div>
 

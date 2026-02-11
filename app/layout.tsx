@@ -5,8 +5,8 @@ import { Footer } from "@/components/Footer";
 import { Providers } from "./providers"; // provider import
 
 export const metadata: Metadata = {
-  title: "Zeitgeist | Orientalist Research Portal",
-  description: "A digital portal for Orientalist researchers.",
+  title: "Zeitgeist | Портал востоковедческих исследований",
+  description: "Цифровой портал для исследователей-востоковедов.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -3,8 +3,8 @@ import { ArticleCard } from '@/components/ArticleCard';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'The Journal | Zeitgeist',
-  description: 'Essays on Art, History & Literature of the East.',
+  title: 'Журнал | Zeitgeist',
+  description: 'Эссе об искусстве, истории и литературе Востока.',
 };
 
 export default async function JournalPage() {
@@ -14,8 +14,8 @@ export default async function JournalPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
       <div className="border-b-4 border-double border-gray-200 pb-8 mb-12 text-center">
-        <h1 className="font-display text-6xl mb-2">The Journal</h1>
-        <span className="font-serif italic text-gray-400">Essays on Art, History & Literature</span>
+        <h1 className="font-display text-6xl mb-2">Журнал</h1>
+        <span className="font-serif italic text-gray-400">Эссе об искусстве, истории и литературе</span>
       </div>
 
       <div className="space-y-20">

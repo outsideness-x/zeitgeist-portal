@@ -12,11 +12,11 @@ export const Header: React.FC = () => {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<{name: string} | null>(null);
   const navItems = [
-    { href: '/research', label: 'Research' },
-    { href: '/journal', label: 'Journal' },
-    { href: '/library', label: 'Library' },
+    { href: '/research', label: 'Исследования' },
+    { href: '/journal', label: 'Журнал' },
+    { href: '/library', label: 'Библиотека' },
     { href: '/nova-express', label: 'Nova' },
-    { href: '/team', label: 'Team' },
+    { href: '/team', label: 'Команда' },
   ];
 
   const isActive = (path: string) => pathname === path ? "text-accent border-b border-accent" : "text-ink hover:text-accent transition-colors dark:text-gray-300 dark:hover:text-white";
@@ -39,7 +39,7 @@ export const Header: React.FC = () => {
             </div>
 
             {/* desktop navigation */}
-            <nav className="hidden md:flex space-x-6 items-center font-serif text-lg tracking-wide" aria-label="Primary">
+            <nav className="hidden md:flex space-x-6 items-center font-serif text-lg tracking-wide" aria-label="Основная навигация">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -61,9 +61,9 @@ export const Header: React.FC = () => {
                 onClick={() => setMenuOpen((prev) => !prev)}
                 aria-expanded={isMenuOpen}
                 aria-controls="mobile-menu"
-                aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+                aria-label={isMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
               >
-                {isMenuOpen ? 'X' : 'Menu'}
+                {isMenuOpen ? 'X' : 'Меню'}
               </button>
 
               <ThemeToggle />
@@ -72,7 +72,7 @@ export const Header: React.FC = () => {
                 href="/upload" 
                 className="hidden md:inline-flex items-center px-4 py-2 border border-accent text-accent hover:bg-accent hover:text-white transition-all font-sans text-xs uppercase tracking-wider duration-300"
               >
-                Upload
+                Загрузить
               </Link>
               
               {user ? (
@@ -80,14 +80,14 @@ export const Header: React.FC = () => {
                    <div className="h-8 w-8 rounded-full bg-accent text-white flex items-center justify-center font-bold">
                       {user.name.charAt(0)}
                    </div>
-                   <button onClick={() => setUser(null)} className="text-gray-500 hover:text-red-500 text-xs uppercase">Logout</button>
+                   <button onClick={() => setUser(null)} className="text-gray-500 hover:text-red-500 text-xs uppercase">Выйти</button>
                 </div>
               ) : (
                 <button 
                   onClick={() => setAuthOpen(true)}
                   className="text-ink font-serif italic hover:text-accent transition-colors dark:text-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
-                  Log In
+                  Войти
                 </button>
               )}
             </div>
@@ -95,7 +95,7 @@ export const Header: React.FC = () => {
         </div>
 
         {isMenuOpen && (
-          <div id="mobile-menu" className="md:hidden border-t border-sepia dark:border-gray-800 px-4 py-4 bg-paper dark:bg-black" aria-label="Mobile navigation">
+          <div id="mobile-menu" className="md:hidden border-t border-sepia dark:border-gray-800 px-4 py-4 bg-paper dark:bg-black" aria-label="Мобильная навигация">
             <nav className="flex flex-col gap-3 font-serif text-lg">
               {navItems.map((item) => (
                 <Link
@@ -115,7 +115,7 @@ export const Header: React.FC = () => {
                 className="inline-flex items-center px-4 py-2 border border-accent text-accent hover:bg-accent hover:text-white transition-all font-sans text-xs uppercase tracking-wider duration-300"
                 onClick={() => setMenuOpen(false)}
               >
-                Upload
+                Загрузить
               </Link>
               {!user && (
                 <button
@@ -126,7 +126,7 @@ export const Header: React.FC = () => {
                   }}
                   className="text-ink font-serif italic hover:text-accent transition-colors dark:text-gray-300"
                 >
-                  Log In
+                  Войти
                 </button>
               )}
             </div>

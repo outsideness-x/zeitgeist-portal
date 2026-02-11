@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 
 export const metadata: Metadata = {
-  title: 'Our Team | Zeitgeist',
-  description: 'Meet the researchers and archivists behind the project.',
+  title: 'Наша команда | Zeitgeist',
+  description: 'Познакомьтесь с исследователями и архивистами проекта.',
 };
 
 export default async function TeamPage() {
@@ -13,9 +13,9 @@ export default async function TeamPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="text-center mb-16">
-        <h1 className="font-display text-5xl mb-4 text-ink dark:text-gray-100">The Team</h1>
+        <h1 className="font-display text-5xl mb-4 text-ink dark:text-gray-100">Команда</h1>
         <p className="font-serif text-xl text-gray-500 dark:text-gray-400">
-          Custodians of the archives.
+          Хранители архива.
         </p>
       </div>
 

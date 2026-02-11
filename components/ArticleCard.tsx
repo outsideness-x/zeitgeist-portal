@@ -9,13 +9,13 @@ interface ArticleCardProps {
 }
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = false }) => {
-  const authorName = article.authors[0]?.name ?? 'Editorial Team';
+  const authorName = article.authors[0]?.name ?? 'Редакция';
   const formattedDate = new Date(article.published_at).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
-  const readingTime = article.reading_time ? `${article.reading_time} min read` : 'Quick read';
+  const readingTime = article.reading_time ? `${article.reading_time} мин чтения` : 'Короткое чтение';
 
   const getBadgeColor = (type: string) => {
     switch (type) {
@@ -40,12 +40,12 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
           />
         ) : (
           <div className="flex h-full items-center justify-center px-6 text-center font-sans text-sm uppercase tracking-widest text-gray-500">
-            No cover image
+            Нет обложки
           </div>
         )}
         <div className="absolute top-4 left-4">
           <span className={`inline-block px-3 py-1 text-xs font-sans uppercase tracking-widest ${getBadgeColor(article.type)}`}>
-            {article.type === 'nova' ? 'NOVA EXPRESS' : article.type}
+            {article.type === 'nova' ? 'Nova Express' : article.type === 'research' ? 'исследование' : 'журнал'}
           </span>
         </div>
       </Link>
@@ -71,7 +71,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
         </p>
 
         <div className="mt-auto">
-          <p className="text-sm font-sans italic text-gray-500">By <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span></p>
+          <p className="text-sm font-sans italic text-gray-500">Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span></p>
         </div>
       </div>
     </div>

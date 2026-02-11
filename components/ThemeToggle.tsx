@@ -10,7 +10,7 @@ export const ThemeToggle = () => {
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className="p-2 rounded-full hover:bg-sepia dark:hover:bg-gray-800 transition-colors text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-      aria-label="Toggle Dark Mode"
+      aria-label="Переключить тему"
       type="button"
     >
       {isDark ? (

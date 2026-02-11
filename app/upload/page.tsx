@@ -28,13 +28,13 @@ export default function UploadPage() {
 
     if (!isPdf(selectedFile)) {
       setFile(null);
-      setErrorMessage('Only PDF files are accepted.');
+      setErrorMessage('Допускаются только PDF-файлы.');
       return;
     }
 
     if (selectedFile.size > maxFileSizeMb * 1024 * 1024) {
       setFile(null);
-      setErrorMessage(`File size must be less than ${maxFileSizeMb}MB.`);
+      setErrorMessage(`Размер файла должен быть меньше ${maxFileSizeMb}MB.`);
       return;
     }
 
@@ -56,7 +56,7 @@ export default function UploadPage() {
     e.preventDefault();
 
     if (!isFormValid || !file) {
-      setErrorMessage('Please complete all fields and attach a valid PDF before submitting.');
+      setErrorMessage('Пожалуйста, заполните все поля и прикрепите корректный PDF перед отправкой.');
       return;
     }
 
@@ -92,20 +92,20 @@ export default function UploadPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
-      <h1 className="font-display text-4xl mb-8 text-center">Submit Manuscript</h1>
+      <h1 className="font-display text-4xl mb-8 text-center">Отправить рукопись</h1>
       
       <form onSubmit={handleUpload} className="bg-white p-8 border border-sepia shadow-lg">
         
         {/* Title Input */}
         <div className="mb-6">
-          <label htmlFor={titleId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Research Title</label>
+          <label htmlFor={titleId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Название исследования</label>
           <input 
             id={titleId}
             type="text" 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full text-lg font-serif border-b-2 border-gray-200 focus:border-accent focus-visible:ring-1 focus-visible:ring-accent outline-none py-2 bg-transparent transition-colors"
-            placeholder="e.g. The Economic Impact of the Silk Road"
+            placeholder="например: Экономическое влияние Шелкового пути"
             required
             minLength={5}
           />
@@ -113,37 +113,37 @@ export default function UploadPage() {
 
         {/* Keywords */}
         <div className="mb-6">
-          <label htmlFor={keywordsId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Keywords (Comma separated)</label>
+          <label htmlFor={keywordsId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Ключевые слова (через запятую)</label>
           <input 
             id={keywordsId}
             type="text" 
             value={keywords}
             onChange={(e) => setKeywords(e.target.value)}
             className="w-full font-serif border-b-2 border-gray-200 focus:border-accent focus-visible:ring-1 focus-visible:ring-accent outline-none py-2 bg-transparent transition-colors"
-            placeholder="History, Economics, Asia..."
+            placeholder="История, Экономика, Азия..."
             required
           />
         </div>
 
         {/* Abstract */}
         <div className="mb-8">
-          <label htmlFor={abstractId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Abstract</label>
+          <label htmlFor={abstractId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Аннотация</label>
           <textarea 
             id={abstractId}
             value={abstract}
             onChange={(e) => setAbstract(e.target.value)}
             rows={6}
             className="w-full bg-stone-50 border border-gray-200 p-4 font-serif text-gray-700 focus:outline-none focus:ring-1 focus:ring-accent"
-            placeholder="Enter abstract..."
+            placeholder="Введите аннотацию..."
             required
             minLength={40}
           />
-          <p className="mt-2 text-xs text-gray-500">Minimum 40 characters.</p>
+          <p className="mt-2 text-xs text-gray-500">Минимум 40 символов.</p>
         </div>
 
         {/* File Upload */}
         <div className="mb-8">
-           <label htmlFor={fileId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-4 text-gray-500">Upload PDF</label>
+           <label htmlFor={fileId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-4 text-gray-500">Загрузите PDF</label>
            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-accent transition-colors cursor-pointer relative bg-stone-50">
              <input 
                id={fileId}
@@ -158,11 +158,11 @@ export default function UploadPage() {
                   <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <p className="mt-2 text-sm text-gray-600 font-sans">
-                  {file ? file.name : "Drag and drop or click to select PDF"}
+                  {file ? file.name : "Перетащите файл или нажмите, чтобы выбрать PDF"}
                 </p>
              </div>
            </div>
-           <p className="mt-2 text-xs text-gray-500">PDF only, up to {maxFileSizeMb}MB.</p>
+           <p className="mt-2 text-xs text-gray-500">Только PDF, до {maxFileSizeMb}MB.</p>
            {errorMessage && (
              <p className="mt-2 text-sm text-red-600" role="alert">
                {errorMessage}
@@ -174,7 +174,7 @@ export default function UploadPage() {
         {uploadStatus === 'uploading' && (
           <div className="mb-8">
              <div className="flex justify-between text-xs font-sans uppercase mb-1" aria-live="polite">
-               <span>Uploading...</span>
+               <span>Загрузка...</span>
                <span>{progress}%</span>
              </div>
              <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -192,7 +192,7 @@ export default function UploadPage() {
 
         {uploadStatus === 'completed' && (
           <p className="mb-8 rounded-sm border border-green-600 bg-green-50 px-4 py-3 text-green-800" role="status">
-            Submission received. Editorial review will begin shortly.
+            Материал получен. Редакционная проверка начнется в ближайшее время.
           </p>
         )}
 
@@ -202,7 +202,7 @@ export default function UploadPage() {
           disabled={!isFormValid || uploadStatus === 'uploading' || uploadStatus === 'completed'}
           className="w-full bg-ink text-white py-4 font-sans uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          {uploadStatus === 'completed' ? 'Submission Received' : 'Submit for Review'}
+          {uploadStatus === 'completed' ? 'Материал отправлен' : 'Отправить на проверку'}
         </button>
 
       </form>

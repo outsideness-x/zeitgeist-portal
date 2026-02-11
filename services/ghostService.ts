@@ -5,47 +5,47 @@ import { cache } from 'react';
 const MOCK_ARTICLES: Article[] = [
   {
     id: '1',
-    title: 'The Silk Road: Trade and Cultural Exchange',
-    excerpt: 'An in-depth look at how the Silk Road shaped the civilizations of the East and West through commerce and art.',
+    title: 'Шелковый путь: торговля и культурный обмен',
+    excerpt: 'Подробный взгляд на то, как Шелковый путь сформировал цивилизации Востока и Запада через торговлю и искусство.',
     feature_image: 'https://picsum.photos/800/600?random=1',
     published_at: '2023-10-15T10:00:00Z',
     authors: [{ id: 'a1', name: 'Dr. Elena Vance' }],
-    tags: ['History', 'Trade', 'Central Asia'],
+    tags: ['История', 'Торговля', 'Центральная Азия'],
     reading_time: 8,
     type: 'journal',
-    content: '<p>Full HTML content from Ghost would go here...</p>'
+    content: '<p>Здесь будет размещен полный HTML-контент из Ghost...</p>'
   },
   {
     id: '2',
-    title: 'Manuscripts of the Late Ottoman Period',
-    excerpt: 'Digitizing the archives: A report on the preservation efforts of 19th-century administrative documents.',
+    title: 'Рукописи позднего османского периода',
+    excerpt: 'Оцифровка архивов: отчет о сохранении административных документов XIX века.',
     feature_image: 'https://picsum.photos/800/600?random=2',
     published_at: '2023-11-02T14:30:00Z',
     authors: [{ id: 'a2', name: 'Prof. A. K. Demir' }],
-    tags: ['Archival Studies', 'Ottoman Empire'],
+    tags: ['Архивоведение', 'Османская империя'],
     reading_time: 12,
     type: 'research',
     pdfUrl: '/files/paper.pdf'
   },
   {
     id: '3',
-    title: 'Sufism and Poetry in 13th Century Persia',
-    excerpt: 'Exploring the metaphysical dimensions of Rumi and Hafiz through a comparative literary lens.',
+    title: 'Суфизм и поэзия в Персии XIII века',
+    excerpt: 'Исследование метафизических измерений Руми и Хафиза в сравнительно-литературной перспективе.',
     feature_image: 'https://picsum.photos/800/600?random=3',
     published_at: '2023-09-20T09:15:00Z',
     authors: [{ id: 'a3', name: 'Sarah Jenkins' }],
-    tags: ['Literature', 'Philosophy', 'Persia'],
+    tags: ['Литература', 'Философия', 'Персия'],
     reading_time: 6,
     type: 'journal'
   },
   {
     id: '4',
-    title: 'Archaeological Findings in the Levant',
-    excerpt: 'New excavations reveal previously unknown settlement patterns dating back to the Bronze Age.',
+    title: 'Археологические находки в Леванте',
+    excerpt: 'Новые раскопки выявляют ранее неизвестные модели расселения, восходящие к бронзовому веку.',
     feature_image: 'https://picsum.photos/800/600?random=4',
     published_at: '2023-12-05T11:00:00Z',
     authors: [{ id: 'a4', name: 'Marcus Thorn' }],
-    tags: ['Archaeology', 'Levant'],
+    tags: ['Археология', 'Левант'],
     reading_time: 15,
     type: 'research',
     pdfUrl: '/files/digs.pdf'
@@ -53,23 +53,23 @@ const MOCK_ARTICLES: Article[] = [
   // nova items
   {
     id: 'nova-1',
-    title: 'The Electronic Revolution: Cut-ups & Cybernetics',
-    excerpt: 'Analyzing the virus of language. "The word is now a virus." How Burroughs predicted the information age.',
+    title: 'Электронная революция: кат-ап и кибернетика',
+    excerpt: 'Анализ вируса языка. «Слово теперь вирус». Как Берроуз предсказал информационную эпоху.',
     feature_image: 'https://picsum.photos/800/600?random=6', 
     published_at: '2024-01-10T23:23:00Z',
     authors: [{ id: 'wsb', name: 'W. Lee' }],
-    tags: ['Cybernetics', 'Cut-up', 'Control'],
+    tags: ['Кибернетика', 'Кат-ап', 'Контроль'],
     reading_time: 4,
     type: 'nova'
   },
   {
     id: 'nova-2',
-    title: 'Dreamachine: Flicker and Altered States',
-    excerpt: 'Brion Gysin’s stroboscopic device as a portal to the subconscious without chemicals.',
+    title: 'Dreamachine: мерцание и измененные состояния',
+    excerpt: 'Стробоскопическое устройство Брайона Гайсина как портал в подсознание без химических веществ.',
     feature_image: 'https://picsum.photos/800/600?random=7',
     published_at: '2024-01-12T00:00:00Z',
     authors: [{ id: 'bg', name: 'B. Gysin' }],
-    tags: ['Psychedelia', 'Hardware', 'Consciousness'],
+    tags: ['Психоделика', 'Устройства', 'Сознание'],
     reading_time: 7,
     type: 'nova'
   }
@@ -111,7 +111,7 @@ const MOCK_LIBRARY: LibraryBook[] = [
     longDescription: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     pdfUrl: '#', // replace with real path like /library/book1.pdf
     publishedYear: '2026',
-    language: 'Russian'
+    language: 'Русский'
   }
 ];
 

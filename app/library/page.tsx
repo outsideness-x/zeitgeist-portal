@@ -4,8 +4,8 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 
 export const metadata: Metadata = {
-  title: 'Digital Library | Zeitgeist',
-  description: 'A curated collection of texts and manuscripts.',
+  title: 'Цифровая библиотека | Zeitgeist',
+  description: 'Кураторская коллекция текстов и рукописей.',
 };
 
 export default async function LibraryPage() {
@@ -14,9 +14,9 @@ export default async function LibraryPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="border-b border-sepia dark:border-gray-800 pb-8 mb-12">
-        <h1 className="font-display text-5xl mb-2 text-ink dark:text-gray-100">Digital Library</h1>
+        <h1 className="font-display text-5xl mb-2 text-ink dark:text-gray-100">Цифровая библиотека</h1>
         <p className="font-serif text-xl text-gray-500 dark:text-gray-400 italic">
-          Restricted access. Archival PDF collection.
+          Архивная коллекция PDF.
         </p>
       </div>
 
@@ -36,7 +36,7 @@ export default async function LibraryPage() {
                 />
                 {/* overlay icon */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                   <span className="bg-white text-ink px-3 py-1 text-xs font-sans uppercase tracking-widest shadow-sm">View</span>
+                   <span className="bg-white text-ink px-3 py-1 text-xs font-sans uppercase tracking-widest shadow-sm">Открыть</span>
                 </div>
               </div>
 

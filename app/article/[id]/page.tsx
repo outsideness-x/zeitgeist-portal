@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await fetchArticleById(id);
 
   if (!article) {
-    return { title: 'Article Not Found' };
+    return { title: 'Статья не найдена' };
   }
 
   return {
@@ -32,7 +32,7 @@ export default async function ArticlePage({ params }: Props) {
     notFound();
   }
 
-  const authorName = article.authors[0]?.name ?? 'Editorial Team';
+  const authorName = article.authors[0]?.name ?? 'Редакция';
   const formattedDate = new Date(article.published_at).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',
@@ -46,12 +46,12 @@ export default async function ArticlePage({ params }: Props) {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-center gap-2 mb-6">
             <span className={`px-3 py-1 text-xs font-sans uppercase tracking-widest text-white ${article.type === 'nova' ? 'bg-black border border-green-500 text-green-500' : 'bg-accent'}`}>
-              {article.type === 'nova' ? 'NOVA EXPRESS' : article.type}
+              {article.type === 'nova' ? 'Nova Express' : article.type === 'research' ? 'исследование' : 'журнал'}
             </span>
           </div>
           <h1 className="font-display text-4xl md:text-6xl mb-6 leading-tight dark:text-gray-100">{article.title}</h1>
           <div className="font-serif text-lg text-gray-500 italic">
-            By <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span> &mdash; {formattedDate}
+            Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span> &mdash; {formattedDate}
           </div>
         </div>
       </div>
@@ -84,18 +84,20 @@ export default async function ArticlePage({ params }: Props) {
            ) : (
              <>
                <p>
-                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-                 Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                 Этот материал находится в процессе подготовки. Мы обновляем архивные записи, чтобы
+                 вы получали корректные источники, примечания и контекст исследования.
                </p>
-               <h3 className="font-display text-2xl mt-8 mb-4">Historical Context</h3>
+               <h3 className="font-display text-2xl mt-8 mb-4">Исторический контекст</h3>
                <p>
-                 At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.
+                 Публикация будет дополнена проверенными фрагментами и комментариями редакции сразу
+                 после финальной научной вычитки.
                </p>
                <blockquote className="border-l-4 border-accent pl-6 italic text-gray-600 dark:text-gray-400 my-8">
-                 &quot;The archives whisper to those who listen.&quot;
+                 &quot;Архивы говорят с теми, кто умеет слушать.&quot;
                </blockquote>
                <p>
-                 Similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga.
+                 Если вам нужен ранний доступ к источникам, свяжитесь с редакцией через раздел
+                 контактов.
                </p>
              </>
            )}
@@ -104,8 +106,8 @@ export default async function ArticlePage({ params }: Props) {
         {/* Download Button for Research */}
         {article.type === 'research' && article.pdfUrl && (
           <div className="mt-12 p-6 bg-stone-100 dark:bg-gray-900 border border-stone-200 dark:border-gray-700 text-center">
-            <h4 className="font-sans font-bold uppercase mb-2 dark:text-gray-200">Access Full Paper</h4>
-            <a href={article.pdfUrl} className="text-accent underline hover:text-ink dark:hover:text-white">Download PDF (2.4 MB)</a>
+            <h4 className="font-sans font-bold uppercase mb-2 dark:text-gray-200">Полный текст исследования</h4>
+            <a href={article.pdfUrl} className="text-accent underline hover:text-ink dark:hover:text-white">Скачать PDF (2.4 MB)</a>
           </div>
         )}
       </div>

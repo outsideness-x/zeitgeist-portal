@@ -10,38 +10,38 @@ export const Footer: React.FC = () => {
           <div className="col-span-1 md:col-span-2">
             <h3 className="font-display text-2xl mb-4 tracking-widest text-white dark:text-gray-200">ZEITGEIST</h3>
             <p className="font-serif text-gray-400 dark:text-gray-500 max-w-md text-lg leading-relaxed">
-              Dedicated to the exploration and preservation of Oriental studies. 
-              We bridge the gap between academic archives and the public curiosity.
+              Посвящено исследованию и сохранению востоковедческих материалов.
+              Мы соединяем академические архивы и общественный интерес.
             </p>
           </div>
 
           <div>
-            <h4 className="font-sans font-bold uppercase tracking-widest text-sm text-accent mb-6">Explore</h4>
+            <h4 className="font-sans font-bold uppercase tracking-widest text-sm text-accent mb-6">Разделы</h4>
             <ul className="space-y-3 font-serif text-gray-300 dark:text-gray-500">
-              <li><Link href="/research" className="hover:text-white dark:hover:text-gray-200 transition-colors">Research Catalog</Link></li>
-              <li><Link href="/journal" className="hover:text-white dark:hover:text-gray-200 transition-colors">The Journal</Link></li>
-              <li><Link href="/library" className="hover:text-white dark:hover:text-gray-200 transition-colors">Digital Library</Link></li>
+              <li><Link href="/research" className="hover:text-white dark:hover:text-gray-200 transition-colors">Каталог исследований</Link></li>
+              <li><Link href="/journal" className="hover:text-white dark:hover:text-gray-200 transition-colors">Журнал</Link></li>
+              <li><Link href="/library" className="hover:text-white dark:hover:text-gray-200 transition-colors">Цифровая библиотека</Link></li>
               <li><Link href="/nova-express" className="hover:text-white dark:hover:text-gray-200 transition-colors">Nova Express</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-sans font-bold uppercase tracking-widest text-sm text-accent mb-6">Organization</h4>
+            <h4 className="font-sans font-bold uppercase tracking-widest text-sm text-accent mb-6">Организация</h4>
             <ul className="space-y-3 font-serif text-gray-300 dark:text-gray-500">
-              <li><Link href="/team" className="hover:text-white dark:hover:text-gray-200 transition-colors">Our Team</Link></li>
-              <li><Link href="/upload" className="hover:text-white dark:hover:text-gray-200 transition-colors">Submit Manuscript</Link></li>
-              <li><Link href="/donate" className="hover:text-white dark:hover:text-gray-200 transition-colors">Support Us</Link></li>
-              <li><Link href="/contact" className="hover:text-white dark:hover:text-gray-200 transition-colors">Contact</Link></li>
+              <li><Link href="/team" className="hover:text-white dark:hover:text-gray-200 transition-colors">Наша команда</Link></li>
+              <li><Link href="/upload" className="hover:text-white dark:hover:text-gray-200 transition-colors">Отправить рукопись</Link></li>
+              <li><Link href="/donate" className="hover:text-white dark:hover:text-gray-200 transition-colors">Поддержать нас</Link></li>
+              <li><Link href="/contact" className="hover:text-white dark:hover:text-gray-200 transition-colors">Контакты</Link></li>
             </ul>
           </div>
 
         </div>
 
         <div className="border-t border-gray-700 dark:border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm font-sans text-gray-500 dark:text-gray-600">
-          <p>&copy; {new Date().getFullYear()} Zeitgeist Project. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Проект Zeitgeist. Все права защищены.</p>
           <div className="mt-4 md:mt-0 space-x-4">
-            <Link href="/privacy" className="hover:text-gray-300 dark:hover:text-gray-400">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-gray-300 dark:hover:text-gray-400">Terms of Use</Link>
+            <Link href="/privacy" className="hover:text-gray-300 dark:hover:text-gray-400">Политика конфиденциальности</Link>
+            <Link href="/terms" className="hover:text-gray-300 dark:hover:text-gray-400">Условия использования</Link>
           </div>
         </div>
       </div>

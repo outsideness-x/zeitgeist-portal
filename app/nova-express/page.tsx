@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Nova Express | Zeitgeist',
-  description: 'Cybernetics, Cut-ups, and the Electronic Revolution.',
+  description: 'Кибернетика, кат-ап и электронная революция.',
 };
 
 export default async function NovaExpressPage() {
@@ -27,12 +27,12 @@ export default async function NovaExpressPage() {
           </h1>
           <div className="inline-block border border-ink dark:border-gray-600 p-2 mt-4">
             <p className="text-sm md:text-base uppercase tracking-widest">
-              {"///"} SYSTEM_STATUS: <span className="text-green-600 dark:text-green-400 font-bold animate-pulse">COMPROMISED</span> {"///"}
+              {"///"} SYSTEM STATUS: <span className="text-green-600 dark:text-green-400 font-bold animate-pulse">ERROR</span> {"///"}
             </p>
           </div>
           <p className="mt-6 max-w-xl mx-auto text-gray-500 dark:text-gray-400">
-            &quot;The soft machine is the biological unit.&quot; <br/>
-            Decoding the control system via cut-ups and cybernetics.
+            &quot;Мягкая машина — это биологическая единица.&quot; <br/>
+            Декодируем систему контроля через кат-ап и кибернетику.
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export default async function NovaExpressPage() {
 
                <div className="mb-4 flex justify-between items-start">
                  <span className="text-xs font-bold bg-ink text-paper dark:bg-gray-800 dark:text-gray-200 px-2 py-1">
-                   FILE_ID: {article.id.toUpperCase()}
+                   ID_ФАЙЛА: {article.id.toUpperCase()}
                  </span>
                  <span className="text-xs text-gray-500 font-mono">
                    {new Date(article.published_at).toLocaleDateString()}

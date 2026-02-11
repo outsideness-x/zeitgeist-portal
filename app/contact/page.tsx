@@ -1,16 +1,16 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Contact | Zeitgeist',
-  description: 'Contact the Zeitgeist research and archives team.',
+  title: 'Контакты | Zeitgeist',
+  description: 'Связь с командой исследователей и архивистов Zeitgeist.',
 };
 
 export default function ContactPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="font-display text-5xl text-ink dark:text-gray-100">Contact</h1>
+      <h1 className="font-display text-5xl text-ink dark:text-gray-100">Контакты</h1>
       <p className="mt-4 font-serif text-lg text-gray-600 dark:text-gray-300">
-        For project inquiries, editorial correspondence, and archive access requests:
+        По вопросам о проекте, редакционному сотрудничеству и доступу к архиву:
       </p>
       <a
         href="mailto:contact@zeitgeist-project.org"
