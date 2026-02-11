@@ -1,6 +1,7 @@
 import { fetchArticleById } from '@/services/ghostService';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -31,6 +32,13 @@ export default async function ArticlePage({ params }: Props) {
     notFound();
   }
 
+  const authorName = article.authors[0]?.name ?? 'Editorial Team';
+  const formattedDate = new Date(article.published_at).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   return (
     <article className="pb-20 min-h-screen bg-paper dark:bg-black transition-colors duration-300">
       {/* Header */}
@@ -43,7 +51,7 @@ export default async function ArticlePage({ params }: Props) {
           </div>
           <h1 className="font-display text-4xl md:text-6xl mb-6 leading-tight dark:text-gray-100">{article.title}</h1>
           <div className="font-serif text-lg text-gray-500 italic">
-            By <span className="text-ink dark:text-gray-300 not-italic font-bold">{article.authors[0].name}</span> &mdash; {new Date(article.published_at).toLocaleDateString()}
+            By <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span> &mdash; {formattedDate}
           </div>
         </div>
       </div>
@@ -51,7 +59,14 @@ export default async function ArticlePage({ params }: Props) {
       {/* Feature Image */}
       {article.feature_image && (
         <div className="w-full h-[50vh] md:h-[70vh] relative overflow-hidden">
-           <img src={article.feature_image} alt={article.title} className="w-full h-full object-cover" />
+           <Image
+             src={article.feature_image}
+             alt={article.title}
+             fill
+             priority
+             sizes="100vw"
+             className="object-cover"
+           />
            <div className="absolute inset-0 bg-gradient-to-t from-paper dark:from-black to-transparent h-20 bottom-0 top-auto"></div>
         </div>
       )}

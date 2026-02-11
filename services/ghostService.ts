@@ -1,4 +1,5 @@
 import { Article, TeamMember, LibraryBook } from '@/types';
+import { cache } from 'react';
 
 // mock data simulating ghost api response
 const MOCK_ARTICLES: Article[] = [
@@ -114,35 +115,39 @@ const MOCK_LIBRARY: LibraryBook[] = [
   }
 ];
 
-export const fetchArticles = async (type?: 'journal' | 'research' | 'nova'): Promise<Article[]> => {
-  // simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  if (type) {
-    return MOCK_ARTICLES.filter(a => a.type === type);
+const SIMULATED_API_DELAY_MS = Number(process.env.SIMULATED_API_DELAY_MS ?? 0);
+
+const maybeWait = async () => {
+  if (SIMULATED_API_DELAY_MS > 0) {
+    await new Promise((resolve) => setTimeout(resolve, SIMULATED_API_DELAY_MS));
   }
-  return MOCK_ARTICLES;
 };
 
-export const fetchArticleById = async (id: string): Promise<Article | undefined> => {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  return MOCK_ARTICLES.find(a => a.id === id);
-};
+export const fetchArticles = cache(async (type?: 'journal' | 'research' | 'nova'): Promise<Article[]> => {
+  await maybeWait();
+  if (!type) return MOCK_ARTICLES;
+  return MOCK_ARTICLES.filter((article) => article.type === type);
+});
+
+export const fetchArticleById = cache(async (id: string): Promise<Article | undefined> => {
+  await maybeWait();
+  return MOCK_ARTICLES.find((article) => article.id === id);
+});
 
 // fetch team members
-export const fetchTeamMembers = async (): Promise<TeamMember[]> => {
-  await new Promise(resolve => setTimeout(resolve, 300));
+export const fetchTeamMembers = cache(async (): Promise<TeamMember[]> => {
+  await maybeWait();
   return MOCK_TEAM;
-};
+});
 
 // fetch library books
-export const fetchLibraryBooks = async (): Promise<LibraryBook[]> => {
-  await new Promise(resolve => setTimeout(resolve, 400));
+export const fetchLibraryBooks = cache(async (): Promise<LibraryBook[]> => {
+  await maybeWait();
   return MOCK_LIBRARY;
-};
+});
 
 // fetch single book
-export const fetchBookById = async (id: string): Promise<LibraryBook | undefined> => {
-  await new Promise(resolve => setTimeout(resolve, 200));
-  return MOCK_LIBRARY.find(b => b.id === id);
-};
+export const fetchBookById = cache(async (id: string): Promise<LibraryBook | undefined> => {
+  await maybeWait();
+  return MOCK_LIBRARY.find((book) => book.id === id);
+});

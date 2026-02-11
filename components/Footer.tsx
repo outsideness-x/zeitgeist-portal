@@ -31,7 +31,7 @@ export const Footer: React.FC = () => {
               <li><Link href="/team" className="hover:text-white dark:hover:text-gray-200 transition-colors">Our Team</Link></li>
               <li><Link href="/upload" className="hover:text-white dark:hover:text-gray-200 transition-colors">Submit Manuscript</Link></li>
               <li><Link href="/donate" className="hover:text-white dark:hover:text-gray-200 transition-colors">Support Us</Link></li>
-              <li><a href="#" className="hover:text-white dark:hover:text-gray-200 transition-colors">Contact</a></li>
+              <li><Link href="/contact" className="hover:text-white dark:hover:text-gray-200 transition-colors">Contact</Link></li>
             </ul>
           </div>
 
@@ -40,8 +40,8 @@ export const Footer: React.FC = () => {
         <div className="border-t border-gray-700 dark:border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm font-sans text-gray-500 dark:text-gray-600">
           <p>&copy; {new Date().getFullYear()} Zeitgeist Project. All rights reserved.</p>
           <div className="mt-4 md:mt-0 space-x-4">
-            <a href="#" className="hover:text-gray-300 dark:hover:text-gray-400">Privacy Policy</a>
-            <a href="#" className="hover:text-gray-300 dark:hover:text-gray-400">Terms of Use</a>
+            <Link href="/privacy" className="hover:text-gray-300 dark:hover:text-gray-400">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-gray-300 dark:hover:text-gray-400">Terms of Use</Link>
           </div>
         </div>
       </div>

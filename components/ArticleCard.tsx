@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Article } from '@/types';
 
 interface ArticleCardProps {
@@ -8,6 +9,14 @@ interface ArticleCardProps {
 }
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = false }) => {
+  const authorName = article.authors[0]?.name ?? 'Editorial Team';
+  const formattedDate = new Date(article.published_at).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const readingTime = article.reading_time ? `${article.reading_time} min read` : 'Quick read';
+
   const getBadgeColor = (type: string) => {
     switch (type) {
       case 'research': return 'bg-indigo-900 text-white';
@@ -21,12 +30,19 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
       
       {/* fx image container !!! */}
       <Link href={`/article/${article.id}`} className={`relative overflow-hidden bg-sepia ${featured ? 'h-64 md:h-96' : 'h-64'} mb-4 md:mb-0 block`}>
-        <img 
-          src={article.feature_image} 
-          alt={article.title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 filter grayscale-[20%] group-hover:grayscale-0"
-          loading="lazy"
-        />
+        {article.feature_image ? (
+          <Image
+            src={article.feature_image}
+            alt={article.title}
+            fill
+            sizes={featured ? '(max-width: 768px) 100vw, 50vw' : '(max-width: 768px) 100vw, 33vw'}
+            className="object-cover transition-transform duration-700 group-hover:scale-105 filter grayscale-[20%] group-hover:grayscale-0"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center px-6 text-center font-sans text-sm uppercase tracking-widest text-gray-500">
+            No cover image
+          </div>
+        )}
         <div className="absolute top-4 left-4">
           <span className={`inline-block px-3 py-1 text-xs font-sans uppercase tracking-widest ${getBadgeColor(article.type)}`}>
             {article.type === 'nova' ? 'NOVA EXPRESS' : article.type}
@@ -37,9 +53,9 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
       {/* Content */}
       <div className={`flex flex-col justify-center ${featured ? 'md:pr-8' : ''}`}>
         <div className="flex items-center space-x-2 text-xs font-sans font-bold text-gray-500 uppercase tracking-wider mb-3">
-          <span>{new Date(article.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          <span>{formattedDate}</span>
           <span>&bull;</span>
-          <span>{article.reading_time} min read</span>
+          <span>{readingTime}</span>
         </div>
 
         <h3 className={`${featured ? 'text-3xl md:text-4xl' : 'text-2xl'} font-display leading-tight mb-3 group-hover:text-accent dark:group-hover:text-white transition-colors`}>
@@ -55,7 +71,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
         </p>
 
         <div className="mt-auto">
-          <p className="text-sm font-sans italic text-gray-500">By <span className="text-ink dark:text-gray-300 not-italic font-bold">{article.authors[0].name}</span></p>
+          <p className="text-sm font-sans italic text-gray-500">By <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span></p>
         </div>
       </div>
     </div>

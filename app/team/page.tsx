@@ -1,5 +1,6 @@
 import { fetchTeamMembers } from '@/services/ghostService';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: 'Our Team | Zeitgeist',
@@ -24,10 +25,12 @@ export default async function TeamPage() {
             {/* photo container */}
             <div className="w-48 h-48 mb-6 relative overflow-hidden rounded-full border-2 border-sepia dark:border-gray-700 group-hover:border-accent transition-colors duration-300">
               {member.photoUrl ? (
-                <img 
-                  src={member.photoUrl} 
-                  alt={member.name} 
-                  className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-500"
+                <Image
+                  src={member.photoUrl}
+                  alt={member.name}
+                  fill
+                  sizes="192px"
+                  className="object-cover filter grayscale group-hover:grayscale-0 transition-all duration-500"
                 />
               ) : (
                 <div className="w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">

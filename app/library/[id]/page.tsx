@@ -2,6 +2,7 @@ import { fetchBookById } from '@/services/ghostService';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -27,6 +28,8 @@ export default async function BookDetailPage({ params }: Props) {
     notFound();
   }
 
+  const hasValidPdf = Boolean(book.pdfUrl && book.pdfUrl !== '#');
+
   return (
     <div className="min-h-screen bg-paper dark:bg-black py-20 px-4 transition-colors duration-300">
       <div className="max-w-5xl mx-auto">
@@ -44,10 +47,12 @@ export default async function BookDetailPage({ params }: Props) {
             {/* left column: cover */}
             <div className="w-full md:w-1/3 flex-shrink-0">
               <div className="aspect-[2/3] w-full bg-gray-100 dark:bg-gray-900 shadow-md border border-gray-200 dark:border-gray-700 p-2">
-                <img 
-                  src={book.coverImage} 
-                  alt={book.title} 
-                  className="w-full h-full object-cover"
+                <Image
+                  src={book.coverImage}
+                  alt={book.title}
+                  width={500}
+                  height={750}
+                  className="h-full w-full object-cover"
                 />
               </div>
             </div>
@@ -81,16 +86,28 @@ export default async function BookDetailPage({ params }: Props) {
               {/* download action */}
               <div className="bg-stone-50 dark:bg-gray-900/50 p-6 border border-sepia dark:border-gray-700">
                 <h4 className="font-sans font-bold uppercase text-sm mb-4 text-ink dark:text-gray-200">Digital Access</h4>
-                <a 
-                  href={book.pdfUrl} 
-                  download
-                  className="inline-flex items-center justify-center w-full md:w-auto px-8 py-3 bg-accent text-white font-sans uppercase text-sm tracking-widest hover:bg-black dark:hover:bg-gray-700 transition-colors"
-                >
-                  Download PDF
-                  <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                </a>
+                {hasValidPdf ? (
+                  <a
+                    href={book.pdfUrl}
+                    download
+                    className="inline-flex items-center justify-center w-full md:w-auto px-8 py-3 bg-accent text-white font-sans uppercase text-sm tracking-widest hover:bg-black dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Download PDF
+                    <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center justify-center w-full md:w-auto px-8 py-3 bg-gray-400 text-white font-sans uppercase text-sm tracking-widest cursor-not-allowed"
+                  >
+                    PDF Unavailable
+                  </button>
+                )}
                 <p className="mt-3 text-xs text-gray-400 text-center md:text-left">
-                  For academic and research purposes only.
+                  {hasValidPdf
+                    ? 'For academic and research purposes only.'
+                    : 'Digital copy coming soon. Please check back later.'}
                 </p>
               </div>
 

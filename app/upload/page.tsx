@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -8,24 +8,72 @@ export default function UploadPage() {
   const [keywords, setKeywords] = useState('');
   const [abstract, setAbstract] = useState('');
   const [progress, setProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'completed'>('idle');
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
+  const titleId = 'research-title';
+  const keywordsId = 'research-keywords';
+  const abstractId = 'research-abstract';
+  const fileId = 'research-pdf';
+  const maxFileSizeMb = 20;
+
+  const isPdf = (selectedFile: File) => {
+    return selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf');
   };
 
-  const handleUpload = () => {
-    if (!file) return;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    if (!isPdf(selectedFile)) {
+      setFile(null);
+      setErrorMessage('Only PDF files are accepted.');
+      return;
+    }
+
+    if (selectedFile.size > maxFileSizeMb * 1024 * 1024) {
+      setFile(null);
+      setErrorMessage(`File size must be less than ${maxFileSizeMb}MB.`);
+      return;
+    }
+
+    setFile(selectedFile);
+    setErrorMessage('');
+  };
+
+  const isFormValid = useMemo(() => {
+    return (
+      title.trim().length >= 5 &&
+      keywords.trim().length > 0 &&
+      abstract.trim().length >= 40 &&
+      !!file &&
+      isPdf(file)
+    );
+  }, [abstract, file, keywords, title]);
+
+  const handleUpload = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!isFormValid || !file) {
+      setErrorMessage('Please complete all fields and attach a valid PDF before submitting.');
+      return;
+    }
+
+    setErrorMessage('');
     setUploadStatus('uploading');
     setProgress(0);
 
-    // Симуляция загрузки
-    const interval = setInterval(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    intervalRef.current = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
-          clearInterval(interval);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+          }
           setUploadStatus('completed');
           return 100;
         }
@@ -34,57 +82,76 @@ export default function UploadPage() {
     }, 200);
   };
 
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
       <h1 className="font-display text-4xl mb-8 text-center">Submit Manuscript</h1>
       
-      <div className="bg-white p-8 border border-sepia shadow-lg">
+      <form onSubmit={handleUpload} className="bg-white p-8 border border-sepia shadow-lg">
         
         {/* Title Input */}
         <div className="mb-6">
-          <label className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Research Title</label>
+          <label htmlFor={titleId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Research Title</label>
           <input 
+            id={titleId}
             type="text" 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-lg font-serif border-b-2 border-gray-200 focus:border-accent outline-none py-2 bg-transparent transition-colors"
+            className="w-full text-lg font-serif border-b-2 border-gray-200 focus:border-accent focus-visible:ring-1 focus-visible:ring-accent outline-none py-2 bg-transparent transition-colors"
             placeholder="e.g. The Economic Impact of the Silk Road"
+            required
+            minLength={5}
           />
         </div>
 
         {/* Keywords */}
         <div className="mb-6">
-          <label className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Keywords (Comma separated)</label>
+          <label htmlFor={keywordsId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Keywords (Comma separated)</label>
           <input 
+            id={keywordsId}
             type="text" 
             value={keywords}
             onChange={(e) => setKeywords(e.target.value)}
-            className="w-full font-serif border-b-2 border-gray-200 focus:border-accent outline-none py-2 bg-transparent transition-colors"
+            className="w-full font-serif border-b-2 border-gray-200 focus:border-accent focus-visible:ring-1 focus-visible:ring-accent outline-none py-2 bg-transparent transition-colors"
             placeholder="History, Economics, Asia..."
+            required
           />
         </div>
 
         {/* Abstract */}
         <div className="mb-8">
-          <label className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Abstract</label>
+          <label htmlFor={abstractId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">Abstract</label>
           <textarea 
+            id={abstractId}
             value={abstract}
             onChange={(e) => setAbstract(e.target.value)}
             rows={6}
             className="w-full bg-stone-50 border border-gray-200 p-4 font-serif text-gray-700 focus:outline-none focus:ring-1 focus:ring-accent"
             placeholder="Enter abstract..."
+            required
+            minLength={40}
           />
+          <p className="mt-2 text-xs text-gray-500">Minimum 40 characters.</p>
         </div>
 
         {/* File Upload */}
         <div className="mb-8">
-           <label className="block text-sm font-sans font-bold uppercase tracking-wider mb-4 text-gray-500">Upload PDF</label>
+           <label htmlFor={fileId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-4 text-gray-500">Upload PDF</label>
            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-accent transition-colors cursor-pointer relative bg-stone-50">
              <input 
+               id={fileId}
                type="file" 
                accept=".pdf"
                onChange={handleFileChange}
                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+               required
              />
              <div className="pointer-events-none">
                 <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
@@ -95,12 +162,18 @@ export default function UploadPage() {
                 </p>
              </div>
            </div>
+           <p className="mt-2 text-xs text-gray-500">PDF only, up to {maxFileSizeMb}MB.</p>
+           {errorMessage && (
+             <p className="mt-2 text-sm text-red-600" role="alert">
+               {errorMessage}
+             </p>
+           )}
         </div>
 
         {/* Progress Bar */}
-        {uploadStatus !== 'idle' && (
+        {uploadStatus === 'uploading' && (
           <div className="mb-8">
-             <div className="flex justify-between text-xs font-sans uppercase mb-1">
+             <div className="flex justify-between text-xs font-sans uppercase mb-1" aria-live="polite">
                <span>Uploading...</span>
                <span>{progress}%</span>
              </div>
@@ -108,21 +181,31 @@ export default function UploadPage() {
                <div 
                  className="bg-accent h-2.5 rounded-full transition-all duration-300" 
                  style={{ width: `${progress}%` }}
+                 role="progressbar"
+                 aria-valuemin={0}
+                 aria-valuemax={100}
+                 aria-valuenow={progress}
                ></div>
              </div>
           </div>
         )}
 
+        {uploadStatus === 'completed' && (
+          <p className="mb-8 rounded-sm border border-green-600 bg-green-50 px-4 py-3 text-green-800" role="status">
+            Submission received. Editorial review will begin shortly.
+          </p>
+        )}
+
         {/* Submit Button */}
         <button 
-          onClick={handleUpload}
-          disabled={!file || uploadStatus === 'uploading' || uploadStatus === 'completed'}
-          className="w-full bg-ink text-white py-4 font-sans uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          type="submit"
+          disabled={!isFormValid || uploadStatus === 'uploading' || uploadStatus === 'completed'}
+          className="w-full bg-ink text-white py-4 font-sans uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           {uploadStatus === 'completed' ? 'Submission Received' : 'Submit for Review'}
         </button>
 
-      </div>
+      </form>
     </div>
   );
 }

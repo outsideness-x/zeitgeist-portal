@@ -1,6 +1,7 @@
 import { fetchLibraryBooks } from '@/services/ghostService';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: 'Digital Library | Zeitgeist',
@@ -26,10 +27,12 @@ export default async function LibraryPage() {
               
               {/* cover image */}
               <div className="aspect-[2/3] w-full bg-gray-100 dark:bg-gray-900 mb-4 overflow-hidden relative">
-                <img 
-                  src={book.coverImage} 
-                  alt={book.title} 
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                <Image
+                  src={book.coverImage}
+                  alt={book.title}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 {/* overlay icon */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
