@@ -1,18 +1,5 @@
 "use client";
 
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-
 type SeriesPoint = {
   date: string;
   views: number;
@@ -55,6 +42,7 @@ type Props = {
 };
 
 const chartContainerClass = 'h-72 w-full rounded border border-sepia/40 bg-stone-50 p-2';
+const tableContainerClass = 'rounded border border-sepia/40 bg-stone-50 p-3';
 
 const compactDate = (isoDate: string) => {
   const value = new Date(isoDate);
@@ -65,8 +53,14 @@ const toDateKey = (date: Date) => {
   return date.toISOString().slice(0, 10);
 };
 
+const toPercent = (value: number, maxValue: number): number => {
+  if (maxValue <= 0) {
+    return 0;
+  }
+  return Math.min(100, Math.round((value / maxValue) * 100));
+};
+
 const denseSeries = (days: number, points: SeriesPoint[]) => {
-  // this fills missing days with zero values so charts stay readable for sparse activity
   const byDate = new Map(points.map((point) => [point.date, point]));
   const output: SeriesPoint[] = [];
   const now = new Date();
@@ -107,112 +101,120 @@ const EmptyState = ({ message }: { message: string }) => {
   );
 };
 
+const SeriesPanel = ({
+  title,
+  points,
+  valueKey,
+}: {
+  title: string;
+  points: SeriesPoint[];
+  valueKey: 'views' | 'uniqueViews';
+}) => {
+  const maxValue = Math.max(...points.map((point) => point[valueKey]), 0);
+
+  return (
+    <div className={chartContainerClass}>
+      <p className="mb-3 text-xs uppercase tracking-wider text-gray-500">{title}</p>
+      <div className="space-y-2">
+        {points.map((point) => (
+          <div key={`${title}-${point.date}`}>
+            <div className="mb-1 flex items-center justify-between text-xs text-gray-600">
+              <span>{compactDate(point.date)}</span>
+              <span>{point[valueKey]}</span>
+            </div>
+            <div className="h-2 w-full bg-sepia/30">
+              <div className="h-2 bg-accent" style={{ width: `${toPercent(point[valueKey], maxValue)}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ReactionPanel = ({ rows }: { rows: ArticlePoint[] }) => {
+  const maxValue = Math.max(
+    ...rows.map((row) => row.reactions.like + row.reactions.insightful + row.reactions.celebrate),
+    0,
+  );
+
+  return (
+    <div className={tableContainerClass}>
+      <p className="mb-3 text-xs uppercase tracking-wider text-gray-500">reactions breakdown per article · last 30 days</p>
+      <div className="space-y-3">
+        {rows.map((row) => {
+          const totalReactions = row.reactions.like + row.reactions.insightful + row.reactions.celebrate;
+          return (
+            <div key={row.articleId}>
+              <div className="mb-1 flex items-center justify-between gap-3 text-xs text-gray-600">
+                <span className="truncate">{row.title}</span>
+                <span>
+                  l {row.reactions.like} · i {row.reactions.insightful} · c {row.reactions.celebrate}
+                </span>
+              </div>
+              <div className="h-2 w-full bg-sepia/30">
+                <div className="h-2 bg-accent" style={{ width: `${toPercent(totalReactions, maxValue)}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const TopArticlesPanel = ({ rows }: { rows: Array<{ articleId: string; title: string; slug: string; views: number }> }) => {
+  const maxValue = Math.max(...rows.map((row) => row.views), 0);
+
+  return (
+    <div className={tableContainerClass}>
+      <p className="mb-3 text-xs uppercase tracking-wider text-gray-500">top articles by views · last 30 days</p>
+      <div className="space-y-3">
+        {rows.map((row) => (
+          <div key={row.articleId}>
+            <div className="mb-1 flex items-center justify-between gap-3 text-xs text-gray-600">
+              <span className="truncate">{row.title}</span>
+              <span>{row.views}</span>
+            </div>
+            <div className="h-2 w-full bg-sepia/30">
+              <div className="h-2 bg-accent" style={{ width: `${toPercent(row.views, maxValue)}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export const AuthorAnalyticsCharts = ({ stats7, stats30 }: Props) => {
   const views7 = denseSeries(7, stats7.series);
   const views30 = denseSeries(30, stats30.series);
-  const reactionRows = toReactionRows(stats30);
+  const reactionRows = toReactionRows(stats30).slice(0, 8);
   const topRows = stats30.topArticles.slice(0, 8);
 
   const hasTimeSeriesData = stats7.series.length > 0 || stats30.series.length > 0;
-  const hasReactionData = reactionRows.some((row) => row.reactions.like + row.reactions.insightful + row.reactions.celebrate > 0);
-  const hasTopArticles = topRows.length > 0;
+  const hasReactionData = stats30.articles.some((row) => {
+    const reactions = row.reactions;
+    return (reactions.like ?? 0) + (reactions.insightful ?? 0) + (reactions.celebrate ?? 0) > 0;
+  });
+  const hasTopArticles = stats30.topArticles.length > 0;
 
   return (
     <div className="space-y-6">
-      {!hasTimeSeriesData ? (
-        <EmptyState message="there is no traffic data yet for your published articles" />
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className={chartContainerClass}>
-            <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">views over time · last 7 days</p>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={views7} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#d7ccc1" />
-                <XAxis dataKey="date" tickFormatter={compactDate} stroke="#7a6f66" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#7a6f66" tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip labelFormatter={(value) => `date: ${value}`} />
-                <Line type="monotone" dataKey="views" stroke="#b7410e" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      {!hasTimeSeriesData && <EmptyState message="there is no traffic data yet for your published articles" />}
 
-          <div className={chartContainerClass}>
-            <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">views over time · last 30 days</p>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={views30} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#d7ccc1" />
-                <XAxis dataKey="date" tickFormatter={compactDate} stroke="#7a6f66" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#7a6f66" tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip labelFormatter={(value) => `date: ${value}`} />
-                <Line type="monotone" dataKey="views" stroke="#8b1e3f" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SeriesPanel title="views over time · last 7 days" points={views7} valueKey="views" />
+        <SeriesPanel title="views over time · last 30 days" points={views30} valueKey="views" />
+        <SeriesPanel title="unique visitors · last 7 days" points={views7} valueKey="uniqueViews" />
+        <SeriesPanel title="unique visitors · last 30 days" points={views30} valueKey="uniqueViews" />
+      </div>
 
-          <div className={chartContainerClass}>
-            <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">unique visitors · last 7 days</p>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={views7} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#d7ccc1" />
-                <XAxis dataKey="date" tickFormatter={compactDate} stroke="#7a6f66" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#7a6f66" tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip labelFormatter={(value) => `date: ${value}`} />
-                <Line type="monotone" dataKey="uniqueViews" stroke="#2f6f44" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      {!hasReactionData && <EmptyState message="there is no reaction data yet" />}
+      <ReactionPanel rows={reactionRows} />
 
-          <div className={chartContainerClass}>
-            <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">unique visitors · last 30 days</p>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={views30} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#d7ccc1" />
-                <XAxis dataKey="date" tickFormatter={compactDate} stroke="#7a6f66" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#7a6f66" tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip labelFormatter={(value) => `date: ${value}`} />
-                <Line type="monotone" dataKey="uniqueViews" stroke="#1b4d75" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {!hasReactionData ? (
-        <EmptyState message="there is no reaction data yet" />
-      ) : (
-        <div className={chartContainerClass}>
-          <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">reactions breakdown per article · last 30 days</p>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={reactionRows} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#d7ccc1" />
-              <XAxis dataKey="title" stroke="#7a6f66" tick={{ fontSize: 10 }} interval={0} angle={-20} height={64} textAnchor="end" />
-              <YAxis stroke="#7a6f66" tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="reactions.like" stackId="a" fill="#b7410e" name="like" />
-              <Bar dataKey="reactions.insightful" stackId="a" fill="#2f6f44" name="insightful" />
-              <Bar dataKey="reactions.celebrate" stackId="a" fill="#1b4d75" name="celebrate" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {!hasTopArticles ? (
-        <EmptyState message="there are no top articles yet" />
-      ) : (
-        <div className={chartContainerClass}>
-          <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">top articles by views · last 30 days</p>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={topRows} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#d7ccc1" />
-              <XAxis dataKey="title" stroke="#7a6f66" tick={{ fontSize: 10 }} interval={0} angle={-20} height={64} textAnchor="end" />
-              <YAxis stroke="#7a6f66" tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="views" fill="#8b1e3f" name="views" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {!hasTopArticles && <EmptyState message="there are no top articles yet" />}
+      <TopArticlesPanel rows={topRows} />
     </div>
   );
 };

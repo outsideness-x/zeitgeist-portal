@@ -1,5 +1,6 @@
 import { fetchArticles } from '@/services/content';
 import { ArticleCard } from '@/components/ArticleCard';
+import { EmptyState } from '@/components/EmptyState';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -25,11 +26,20 @@ export default async function ResearchPage({ searchParams }: ResearchPageProps) 
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {papers.items.map(paper => (
-          <div key={paper.id} className="bg-white dark:bg-card-bg p-6 border border-sepia dark:border-gray-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
-             <ArticleCard article={paper} />
+        {papers.items.length > 0 ? (
+          papers.items.map(paper => (
+            <div key={paper.id} className="bg-white dark:bg-card-bg p-6 border border-sepia dark:border-gray-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
+              <ArticleCard article={paper} />
+            </div>
+          ))
+        ) : (
+          <div className="md:col-span-2 lg:col-span-3">
+            <EmptyState
+              title="каталог исследований готовится"
+              description="материалы появятся после публикации в ghost."
+            />
           </div>
-        ))}
+        )}
       </div>
 
       <div className="mt-12 flex items-center justify-between">

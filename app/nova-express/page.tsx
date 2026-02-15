@@ -1,6 +1,7 @@
 import { fetchArticles } from '@/services/content';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { EmptyState } from '@/components/EmptyState';
 
 export const metadata: Metadata = {
   title: 'Nova Express | Zeitgeist',
@@ -44,42 +45,48 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
 
         {/* Cyber Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {articles.items.map(article => (
-            // fx card design
-            <div key={article.id} className="group relative bg-paper dark:bg-card-bg border-2 border-ink dark:border-gray-700 hover:border-accent dark:hover:border-green-500 transition-colors duration-300 p-6">
-               
-               {/* Decorative Corner */}
-               <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-ink dark:border-gray-600 group-hover:border-accent dark:group-hover:border-green-500 transition-colors"></div>
-               <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-ink dark:border-gray-600 group-hover:border-accent dark:group-hover:border-green-500 transition-colors"></div>
+          {articles.items.length > 0 ? (
+            articles.items.map(article => (
+              <div key={article.id} className="group relative rounded-lg bg-paper dark:bg-card-bg border-2 border-ink dark:border-gray-700 hover:border-accent dark:hover:border-green-500 transition-colors duration-300 p-6">
+                <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-ink dark:border-gray-600 group-hover:border-accent dark:group-hover:border-green-500 transition-colors"></div>
+                <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-ink dark:border-gray-600 group-hover:border-accent dark:group-hover:border-green-500 transition-colors"></div>
 
-               <div className="mb-4 flex justify-between items-start">
-                 <span className="text-xs font-bold bg-ink text-paper dark:bg-gray-800 dark:text-gray-200 px-2 py-1">
-                   ID_ФАЙЛА: {article.id.toUpperCase()}
-                 </span>
-                 <span className="text-xs text-gray-500 font-mono">
-                   {new Date(article.published_at).toLocaleDateString()}
-                 </span>
-               </div>
+                <div className="mb-4 flex justify-between items-start">
+                  <span className="text-xs font-bold bg-ink text-paper dark:bg-gray-800 dark:text-gray-200 px-2 py-1">
+                    ID_ФАЙЛА: {article.id.toUpperCase()}
+                  </span>
+                  <span className="text-xs text-gray-500 font-mono">
+                    {new Date(article.published_at).toLocaleDateString()}
+                  </span>
+                </div>
 
-               <h3 className="text-2xl font-bold leading-tight mb-4 group-hover:text-accent dark:group-hover:text-green-400 transition-colors">
-                 <Link href={`/article/${article.id}`} className="before:absolute before:inset-0">
-                   {article.title}
-                 </Link>
-               </h3>
+                <h3 className="text-2xl font-bold leading-tight mb-4 group-hover:text-accent dark:group-hover:text-green-400 transition-colors">
+                  <Link href={`/article/${article.id}`} className="before:absolute before:inset-0">
+                    {article.title}
+                  </Link>
+                </h3>
 
-               <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4 border-l-2 border-gray-300 dark:border-gray-700 pl-4">
-                 {article.excerpt}
-               </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4 border-l-2 border-gray-300 dark:border-gray-700 pl-4">
+                  {article.excerpt}
+                </p>
 
-               <div className="flex gap-2 mt-auto">
+                <div className="flex gap-2 mt-4">
                   {article.tags.map(tag => (
-                      <span key={tag} className="text-[10px] uppercase border border-gray-400 dark:border-gray-600 px-1 text-gray-500 dark:text-gray-400">
-                        #{tag}
-                      </span>
+                    <span key={tag} className="text-[10px] uppercase border border-gray-400 dark:border-gray-600 px-1 text-gray-500 dark:text-gray-400">
+                      #{tag}
+                    </span>
                   ))}
-               </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="md:col-span-2 lg:col-span-3">
+              <EmptyState
+                title="nova express готовится"
+                description="поток материалов появится после публикации в ghost."
+              />
             </div>
-          ))}
+          )}
         </div>
 
         <div className="mt-12 flex items-center justify-between">

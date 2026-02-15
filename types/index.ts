@@ -13,12 +13,13 @@ export interface Article {
   canonicalPath?: string;
   title: string;
   excerpt: string;
-  content?: string;
+  html?: string;
   feature_image?: string;
   published_at: string;
   authors: Author[];
   tags: string[];
   reading_time?: number;
+  baseLikeCount?: number;
   type: 'journal' | 'research' | 'nova';
   gallery_images?: string[];
 }

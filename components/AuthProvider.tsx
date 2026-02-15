@@ -21,7 +21,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000';
+const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || '';
 
 const parseErrorMessage = async (response: Response) => {
   const fallback = `request failed with status ${response.status}`;
@@ -39,36 +39,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const refreshMe = useCallback(async () => {
-    const response = await fetch(`${backendBaseUrl}/api/auth/me`, {
-      method: 'GET',
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
+    if (!backendBaseUrl) {
       setUser(null);
       setCsrfToken(null);
+      setLoading(false);
       return;
     }
 
-    const payload = (await response.json()) as { user: AuthUser; csrfToken: string };
-    setUser(payload.user);
-    setCsrfToken(payload.csrfToken);
+    try {
+      const response = await fetch(`${backendBaseUrl}/api/auth/me`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        setUser(null);
+        setCsrfToken(null);
+        return;
+      }
+
+      const payload = (await response.json()) as { user: AuthUser; csrfToken: string };
+      setUser(payload.user);
+      setCsrfToken(payload.csrfToken);
+    } catch {
+      setUser(null);
+      setCsrfToken(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    // this bootstraps auth state once so header and protected pages share one source
-    const run = async () => {
-      try {
-        await refreshMe();
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void run();
+    void refreshMe();
   }, [refreshMe]);
 
   const login = useCallback(async (email: string, password: string) => {
+    if (!backendBaseUrl) {
+      throw new Error('backend url is not configured');
+    }
+
     const response = await fetch(`${backendBaseUrl}/api/auth/login`, {
       method: 'POST',
       credentials: 'include',
@@ -88,6 +97,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
+    if (!backendBaseUrl) {
+      throw new Error('backend url is not configured');
+    }
+
     const response = await fetch(`${backendBaseUrl}/api/auth/register`, {
       method: 'POST',
       credentials: 'include',
@@ -107,6 +120,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const logout = useCallback(async () => {
+    if (!backendBaseUrl) {
+      setUser(null);
+      setCsrfToken(null);
+      return;
+    }
+
     // csrf is required for mutating session endpoints that rely on cookies
     const response = await fetch(`${backendBaseUrl}/api/auth/logout`, {
       method: 'POST',

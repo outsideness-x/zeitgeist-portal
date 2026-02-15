@@ -2,63 +2,63 @@ export type LikeState = {
   liked: boolean;
 };
 
-const STORAGE_PREFIX = 'zeitgeist:likes';
-
-const getStorageKey = (articleId: string) => `${STORAGE_PREFIX}:${articleId}`;
+const STORAGE_KEY = 'zeitgeist_likes';
 
 const fallbackLikeState: LikeState = { liked: false };
 
-const readState = (articleId: string): LikeState => {
+const readAllLikes = (): Record<string, LikeState> => {
   if (typeof window === 'undefined') {
-    return fallbackLikeState;
+    return {};
   }
 
   try {
-    const raw = window.localStorage.getItem(getStorageKey(articleId));
+    const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return fallbackLikeState;
+      return {};
     }
 
-    const parsed = JSON.parse(raw) as Partial<LikeState>;
-    return { liked: Boolean(parsed.liked) };
+    const parsed = JSON.parse(raw) as Record<string, Partial<LikeState>>;
+    return Object.entries(parsed).reduce<Record<string, LikeState>>((acc, [articleId, state]) => {
+      acc[articleId] = { liked: Boolean(state.liked) };
+      return acc;
+    }, {});
   } catch {
-    return fallbackLikeState;
+    return {};
   }
 };
 
-const writeState = (articleId: string, state: LikeState) => {
+const writeAllLikes = (likes: Record<string, LikeState>): void => {
   if (typeof window === 'undefined') {
     return;
   }
 
   try {
-    window.localStorage.setItem(getStorageKey(articleId), JSON.stringify(state));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(likes));
   } catch {
     return;
   }
-};
-
-const getDeterministicBaseCount = (articleId: string): number => {
-  let hash = 0;
-  for (let index = 0; index < articleId.length; index += 1) {
-    hash = (hash * 31 + articleId.charCodeAt(index)) >>> 0;
-  }
-  return 12 + (hash % 37);
 };
 
 export const getLikeState = (articleId: string): LikeState => {
-  return readState(articleId);
+  const likes = readAllLikes();
+  return likes[articleId] ?? fallbackLikeState;
 };
 
-export const toggleLike = (articleId: string): LikeState => {
-  const current = readState(articleId);
-  const next = { liked: !current.liked };
-  writeState(articleId, next);
+export const setLikeState = (articleId: string, liked: boolean): LikeState => {
+  const likes = readAllLikes();
+  const next = { liked };
+  likes[articleId] = next;
+  writeAllLikes(likes);
   return next;
 };
 
-export const getDisplayLikeCount = (articleId: string, baseCount?: number): number => {
-  const base = typeof baseCount === 'number' ? baseCount : getDeterministicBaseCount(articleId);
-  const state = readState(articleId);
+export const toggleLike = (articleId: string): LikeState => {
+  const current = getLikeState(articleId);
+  return setLikeState(articleId, !current.liked);
+};
+
+export const getDisplayLikeCount = (articleId: string, baseCount: number): number => {
+  const state = getLikeState(articleId);
+  const base = Number.isFinite(baseCount) ? baseCount : 0;
   return base + (state.liked ? 1 : 0);
 };

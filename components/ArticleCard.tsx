@@ -26,10 +26,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
   };
 
   return (
-    <div className={`group flex flex-col rounded-lg ${featured ? 'md:grid md:grid-cols-2 md:gap-8 mb-12' : 'h-full'}`}>
-      
-      {/* fx image container !!! */}
-      <Link href={`/article/${article.id}`} className={`relative overflow-hidden rounded-lg bg-sepia ${featured ? 'h-64 md:h-96' : 'h-64'} mb-4 md:mb-0 block`}>
+    <div className={`group flex flex-col rounded-lg ${featured ? 'md:grid md:grid-cols-2 md:gap-8' : ''}`}>
+      <Link href={`/article/${article.id}`} className={`relative overflow-hidden rounded-lg bg-sepia ${featured ? 'h-64 md:h-96' : 'h-64'} mb-6 md:mb-0 block`}>
         {article.feature_image ? (
           <Image
             src={article.feature_image}
@@ -50,29 +48,26 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
         </div>
       </Link>
 
-      {/* Content */}
-      <div className={`flex flex-col justify-center ${featured ? 'md:pr-8' : ''}`}>
-        <div className="flex items-center space-x-2 text-xs font-sans font-bold text-gray-500 uppercase tracking-wider mb-3">
+      <div className={`flex flex-col gap-3 ${featured ? 'md:pr-8' : ''}`}>
+        <div className="flex items-center space-x-2 text-xs font-sans font-bold text-gray-500 uppercase tracking-wider">
           <span>{formattedDate}</span>
           <span>&bull;</span>
           <span>{readingTime}</span>
         </div>
 
-        <h3 className={`${featured ? 'text-3xl md:text-4xl' : 'text-2xl'} font-display leading-tight mb-3 group-hover:text-accent dark:group-hover:text-white transition-colors`}>
+        <h3 className={`${featured ? 'text-3xl md:text-4xl' : 'text-2xl'} font-display leading-tight group-hover:text-accent dark:group-hover:text-white transition-colors`}>
           <Link href={`/article/${article.id}`}>
             {article.title}
           </Link>
         </h3>
 
-        <div className="w-12 h-1 bg-accent mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div className="w-12 h-1 bg-accent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-        <p className="font-serif text-gray-600 dark:text-gray-400 leading-relaxed mb-4 line-clamp-3">
+        <p className="font-serif text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
           {article.excerpt}
         </p>
 
-        <div className="mt-auto">
-          <p className="text-sm font-sans italic text-gray-500">Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span></p>
-        </div>
+        <p className="text-sm font-sans italic text-gray-500">Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span></p>
       </div>
     </div>
   );

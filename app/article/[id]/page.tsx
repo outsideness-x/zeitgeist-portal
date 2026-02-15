@@ -9,12 +9,23 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
+const sanitizeArticleHtml = (value: string): string => {
+  return value
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+    .replace(/<(iframe|object|embed|link|meta)[\s\S]*?>/gi, '')
+    .replace(/\son\w+\s*=\s*(['"]).*?\1/gi, '')
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
+    .replace(/\s(href|src)\s*=\s*(['"])\s*javascript:[^'"]*\2/gi, ' $1="#"')
+    .replace(/\s(href|src)\s*=\s*javascript:[^\s>]+/gi, ' $1="#"');
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const article = await fetchArticleById(id);
 
   if (!article) {
-    return { title: 'Статья не найдена' };
+    notFound();
   }
 
   return {
@@ -40,10 +51,12 @@ export default async function ArticlePage({ params }: Props) {
   });
   const galleryImages = article.gallery_images ?? [];
   const hasCarousel = galleryImages.length >= 2;
+  const hasSingleGalleryImage = galleryImages.length === 1;
+  const heroImage = hasSingleGalleryImage ? galleryImages[0] : !hasCarousel ? article.feature_image : undefined;
+  const safeHtml = article.html ? sanitizeArticleHtml(article.html) : '';
 
   return (
     <article className="pb-20 min-h-screen bg-paper dark:bg-black transition-colors duration-300">
-      {/* Header */}
       <div className="bg-paper dark:bg-black py-20 px-4 text-center border-b border-sepia dark:border-gray-800">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-center gap-2 mb-6">
@@ -52,19 +65,19 @@ export default async function ArticlePage({ params }: Props) {
             </span>
           </div>
           <h1 className="font-display text-4xl md:text-6xl mb-6 leading-tight dark:text-gray-100">{article.title}</h1>
-          <div className="font-serif text-lg text-gray-500 italic">
-            Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span> &mdash; {formattedDate} &mdash; {readingTime}
-          </div>
-          <div className="mt-6 flex justify-center">
-            <LikeButton articleId={article.id} />
+          <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="font-serif text-lg text-gray-500 italic">
+              Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span> &mdash; {formattedDate} &mdash; {readingTime}
+            </div>
+            <LikeButton articleId={article.id} baseCount={article.baseLikeCount ?? 0} />
           </div>
         </div>
       </div>
 
-      {article.feature_image && (
+      {heroImage && (
         <div className="w-full h-[50vh] md:h-[70vh] relative overflow-hidden">
            <Image
-             src={article.feature_image}
+             src={heroImage}
              alt={article.title}
              fill
              priority
@@ -77,21 +90,21 @@ export default async function ArticlePage({ params }: Props) {
 
       {hasCarousel && (
         <div className="max-w-4xl mx-auto px-4 mt-10">
-          <ImageCarousel images={galleryImages} title={article.title} />
+          <ImageCarousel images={galleryImages} alt={article.title} />
         </div>
       )}
 
       <div
         className={`max-w-4xl mx-auto px-4 relative z-10 bg-paper dark:bg-card-bg p-8 shadow-sm border border-transparent dark:border-gray-800 ${
-          article.feature_image && !hasCarousel ? '-mt-10' : 'mt-10'
+          heroImage && !hasCarousel ? '-mt-10' : 'mt-10'
         }`}
       >
         <div className="prose prose-lg prose-stone dark:prose-invert font-serif mx-auto first-letter:text-5xl first-letter:font-display first-letter:float-left first-letter:mr-3 first-letter:mt-2">
            
            <p className="lead text-xl text-gray-700 dark:text-gray-300 mb-6">{article.excerpt}</p>
            
-           {article.content ? (
-             <div dangerouslySetInnerHTML={{ __html: article.content }} />
+           {article.html ? (
+             <div dangerouslySetInnerHTML={{ __html: safeHtml }} />
            ) : (
              <>
                <p>

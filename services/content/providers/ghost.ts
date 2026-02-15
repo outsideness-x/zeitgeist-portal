@@ -107,7 +107,7 @@ export class GhostContentProvider implements ContentProvider {
       canonicalPath: `/article/${post.slug || post.id}`,
       title: post.title,
       excerpt: post.custom_excerpt || post.excerpt || '',
-      content: post.html ?? undefined,
+      html: post.html ?? undefined,
       feature_image: post.feature_image ?? undefined,
       published_at: post.published_at,
       authors:
@@ -118,6 +118,7 @@ export class GhostContentProvider implements ContentProvider {
         })) ?? [],
       tags,
       reading_time: post.reading_time ?? undefined,
+      baseLikeCount: 0,
       type,
     };
   }

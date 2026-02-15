@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { fetchArticles } from '@/services/content';
 import { ArticleCard } from '@/components/ArticleCard';
+import { EmptyState } from '@/components/EmptyState';
 
 export default async function Home() {
   // data fetching on server
@@ -23,11 +24,17 @@ export default async function Home() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-10">
         {/* Featured Article */}
-        {featured && (
-          <div className="bg-paper dark:bg-card-bg p-6 md:p-10 shadow-xl border border-sepia dark:border-gray-700 mb-20 transition-colors duration-300">
+        <div className="bg-paper dark:bg-card-bg p-6 md:p-10 shadow-xl border border-sepia dark:border-gray-700 mb-20 transition-colors duration-300">
+          {featured ? (
             <ArticleCard article={featured} featured={true} />
-          </div>
-        )}
+          ) : (
+            <EmptyState
+              title="главный материал готовится"
+              description="публикация появится после синхронизации с ghost."
+              className="border-0 bg-transparent p-0"
+            />
+          )}
+        </div>
 
         {/* Two Columns Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -40,9 +47,16 @@ export default async function Home() {
             </div>
             
             <div className="space-y-12">
-              {journalArticles.map(article => (
-                <ArticleCard key={article.id} article={article} />
-              ))}
+              {journalArticles.length > 0 ? (
+                journalArticles.map(article => (
+                  <ArticleCard key={article.id} article={article} />
+                ))
+              ) : (
+                <EmptyState
+                  title="раздел журнала готовится"
+                  description="первые статьи появятся здесь после публикации."
+                />
+              )}
             </div>
           </div>
 
@@ -57,20 +71,27 @@ export default async function Home() {
               </div>
 
               <div className="space-y-6">
-                {researchPapers.map(paper => (
-                  <div key={paper.id} className="group">
-                    <span className="block text-xs font-sans text-gray-400 mb-1">{new Date(paper.published_at).toLocaleDateString()}</span>
-                    <h4 className="font-serif text-lg leading-tight mb-2 group-hover:text-accent transition-colors dark:text-gray-200">
-                      <Link href={`/article/${paper.id}`}>{paper.title}</Link>
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{paper.excerpt}</p>
-                    <div className="mt-2 flex gap-2">
+                {researchPapers.length > 0 ? (
+                  researchPapers.map(paper => (
+                    <div key={paper.id} className="group">
+                      <span className="block text-xs font-sans text-gray-400 mb-1">{new Date(paper.published_at).toLocaleDateString()}</span>
+                      <h4 className="font-serif text-lg leading-tight mb-2 group-hover:text-accent transition-colors dark:text-gray-200">
+                        <Link href={`/article/${paper.id}`}>{paper.title}</Link>
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{paper.excerpt}</p>
+                      <div className="mt-2 flex gap-2">
                         {paper.tags.slice(0, 2).map(tag => (
-                            <span key={tag} className="text-[10px] uppercase border border-gray-300 dark:border-gray-700 px-2 py-0.5 text-gray-500 dark:text-gray-400">{tag}</span>
+                          <span key={tag} className="text-[10px] uppercase border border-gray-300 dark:border-gray-700 px-2 py-0.5 text-gray-500 dark:text-gray-400">{tag}</span>
                         ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <EmptyState
+                    title="исследования скоро появятся"
+                    description="каталог заполнится после подключения контента."
+                  />
+                )}
               </div>
             </div>
 

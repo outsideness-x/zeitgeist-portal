@@ -1,5 +1,6 @@
 import { fetchArticles } from '@/services/content';
 import { ArticleCard } from '@/components/ArticleCard';
+import { EmptyState } from '@/components/EmptyState';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -26,12 +27,19 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         <span className="font-serif italic text-gray-400">Эссе об искусстве, истории и литературе</span>
       </div>
 
-      <div className="space-y-20">
-        {articles.items.map((article, idx) => (
-          <div key={article.id} className={idx !== articles.items.length - 1 ? "border-b border-gray-200 pb-20" : ""}>
-             <ArticleCard article={article} featured={true} />
-          </div>
-        ))}
+      <div className="space-y-12">
+        {articles.items.length > 0 ? (
+          articles.items.map((article, idx) => (
+            <div key={article.id} className={idx !== articles.items.length - 1 ? "border-b border-gray-200 pb-12" : ""}>
+              <ArticleCard article={article} featured={true} />
+            </div>
+          ))
+        ) : (
+          <EmptyState
+            title="раздел журнала готовится"
+            description="новые публикации появятся после синхронизации с ghost."
+          />
+        )}
       </div>
 
       <div className="mt-12 flex items-center justify-between">

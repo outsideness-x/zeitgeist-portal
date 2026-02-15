@@ -1,30 +1,51 @@
 "use client";
 
 import { useRef, useState } from 'react';
+import type { JSX, PointerEvent } from 'react';
 import Image from 'next/image';
 
 type ImageCarouselProps = {
   images: string[];
-  title: string;
+  alt: string;
 };
 
-export const ImageCarousel = ({ images, title }: ImageCarouselProps) => {
+export const ImageCarousel = ({ images, alt }: ImageCarouselProps): JSX.Element | null => {
   const [activeIndex, setActiveIndex] = useState(0);
   const pointerStartX = useRef<number | null>(null);
 
-  const goPrev = () => {
+  if (images.length === 0) {
+    return null;
+  }
+
+  if (images.length === 1) {
+    return (
+      <section className="mt-8" aria-label="изображение статьи">
+        <div className="relative h-[34vh] sm:h-[40vh] md:h-[48vh] overflow-hidden rounded-lg border border-sepia bg-paper dark:border-gray-800 dark:bg-card-bg">
+          <Image
+            src={images[0]}
+            alt={alt}
+            fill
+            sizes="(max-width: 768px) 100vw, 900px"
+            className="object-cover"
+          />
+        </div>
+      </section>
+    );
+  }
+
+  const goPrev = (): void => {
     setActiveIndex((current) => (current - 1 + images.length) % images.length);
   };
 
-  const goNext = () => {
+  const goNext = (): void => {
     setActiveIndex((current) => (current + 1) % images.length);
   };
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>): void => {
     pointerStartX.current = event.clientX;
   };
 
-  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>): void => {
     if (pointerStartX.current === null) {
       return;
     }
@@ -66,7 +87,7 @@ export const ImageCarousel = ({ images, title }: ImageCarouselProps) => {
         <div className="relative h-[34vh] sm:h-[40vh] md:h-[48vh]">
           <Image
             src={images[activeIndex]}
-            alt={`${title} — изображение ${activeIndex + 1}`}
+            alt={`${alt} — изображение ${activeIndex + 1}`}
             fill
             sizes="(max-width: 768px) 100vw, 900px"
             className="object-cover"
@@ -94,6 +115,10 @@ export const ImageCarousel = ({ images, title }: ImageCarouselProps) => {
             <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
           </svg>
         </button>
+
+        <div className="absolute right-3 top-3 rounded border border-sepia bg-paper/80 px-2 py-1 text-xs font-sans dark:border-gray-700 dark:bg-black/70">
+          {activeIndex + 1} / {images.length}
+        </div>
       </div>
 
       <div className="mt-3 flex items-center justify-center gap-2" aria-hidden="true">
