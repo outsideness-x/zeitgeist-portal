@@ -26,10 +26,10 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
   };
 
   return (
-    <div className={`group flex flex-col ${featured ? 'md:grid md:grid-cols-2 md:gap-8 mb-12' : 'h-full'}`}>
+    <div className={`group flex flex-col rounded-lg ${featured ? 'md:grid md:grid-cols-2 md:gap-8 mb-12' : 'h-full'}`}>
       
       {/* fx image container !!! */}
-      <Link href={`/article/${article.id}`} className={`relative overflow-hidden bg-sepia ${featured ? 'h-64 md:h-96' : 'h-64'} mb-4 md:mb-0 block`}>
+      <Link href={`/article/${article.id}`} className={`relative overflow-hidden rounded-lg bg-sepia ${featured ? 'h-64 md:h-96' : 'h-64'} mb-4 md:mb-0 block`}>
         {article.feature_image ? (
           <Image
             src={article.feature_image}

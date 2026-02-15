@@ -119,7 +119,6 @@ export class GhostContentProvider implements ContentProvider {
       tags,
       reading_time: post.reading_time ?? undefined,
       type,
-      pdfUrl: post.canonical_url?.toLowerCase().endsWith('.pdf') ? post.canonical_url : undefined,
     };
   }
 

@@ -2,13 +2,13 @@ import { fetchArticleById } from '@/services/content';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import { ArticleEngagement } from '@/components/ArticleEngagement';
+import { LikeButton } from '@/components/LikeButton';
+import { ImageCarousel } from '@/components/ImageCarousel';
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
-// meta tegs
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const article = await fetchArticleById(id);
@@ -23,24 +23,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// 
 export default async function ArticlePage({ params }: Props) {
   const { id } = await params;
   const article = await fetchArticleById(id);
 
-  // 404
   if (!article) {
     notFound();
   }
 
   const authorName = article.authors[0]?.name ?? 'Редакция';
+  const readingTime = article.reading_time ? `${article.reading_time} мин чтения` : 'короткое чтение';
   const formattedDate = new Date(article.published_at).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
-  const articleSource = article.source ?? 'local';
-  const articleSlug = article.slug ?? article.id;
+  const galleryImages = article.gallery_images ?? [];
+  const hasCarousel = galleryImages.length >= 2;
 
   return (
     <article className="pb-20 min-h-screen bg-paper dark:bg-black transition-colors duration-300">
@@ -54,12 +53,14 @@ export default async function ArticlePage({ params }: Props) {
           </div>
           <h1 className="font-display text-4xl md:text-6xl mb-6 leading-tight dark:text-gray-100">{article.title}</h1>
           <div className="font-serif text-lg text-gray-500 italic">
-            Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span> &mdash; {formattedDate}
+            Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span> &mdash; {formattedDate} &mdash; {readingTime}
+          </div>
+          <div className="mt-6 flex justify-center">
+            <LikeButton articleId={article.id} />
           </div>
         </div>
       </div>
 
-      {/* Feature Image */}
       {article.feature_image && (
         <div className="w-full h-[50vh] md:h-[70vh] relative overflow-hidden">
            <Image
@@ -74,10 +75,17 @@ export default async function ArticlePage({ params }: Props) {
         </div>
       )}
 
-      {/* Content */}
-      <div className="max-w-2xl mx-auto px-4 -mt-10 relative z-10 bg-paper dark:bg-card-bg p-8 shadow-sm border border-transparent dark:border-gray-800">
-        
-        {/* main content */}
+      {hasCarousel && (
+        <div className="max-w-4xl mx-auto px-4 mt-10">
+          <ImageCarousel images={galleryImages} title={article.title} />
+        </div>
+      )}
+
+      <div
+        className={`max-w-4xl mx-auto px-4 relative z-10 bg-paper dark:bg-card-bg p-8 shadow-sm border border-transparent dark:border-gray-800 ${
+          article.feature_image && !hasCarousel ? '-mt-10' : 'mt-10'
+        }`}
+      >
         <div className="prose prose-lg prose-stone dark:prose-invert font-serif mx-auto first-letter:text-5xl first-letter:font-display first-letter:float-left first-letter:mr-3 first-letter:mt-2">
            
            <p className="lead text-xl text-gray-700 dark:text-gray-300 mb-6">{article.excerpt}</p>
@@ -106,23 +114,6 @@ export default async function ArticlePage({ params }: Props) {
            )}
         </div>
 
-        {/* Download Button for Research */}
-        {article.type === 'research' && article.pdfUrl && (
-          <div className="mt-12 p-6 bg-stone-100 dark:bg-gray-900 border border-stone-200 dark:border-gray-700 text-center">
-            <h4 className="font-sans font-bold uppercase mb-2 dark:text-gray-200">Полный текст исследования</h4>
-            <a href={article.pdfUrl} className="text-accent underline hover:text-ink dark:hover:text-white">Скачать PDF</a>
-          </div>
-        )}
-
-        <ArticleEngagement
-          source={articleSource}
-          slug={articleSlug}
-          externalId={article.externalId}
-          title={article.title}
-          excerpt={article.excerpt}
-          section={article.type}
-          initialInternalArticleId={article.internalArticleId}
-        />
       </div>
     </article>
   );

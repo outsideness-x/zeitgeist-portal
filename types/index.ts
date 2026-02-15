@@ -20,7 +20,7 @@ export interface Article {
   tags: string[];
   reading_time?: number;
   type: 'journal' | 'research' | 'nova';
-  pdfUrl?: string;
+  gallery_images?: string[];
 }
 
 export interface User {

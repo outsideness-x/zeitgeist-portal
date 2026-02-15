@@ -36,7 +36,7 @@ export default async function LibraryPage() {
                 />
                 {/* overlay icon */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                   <span className="bg-white text-ink px-3 py-1 text-xs font-sans uppercase tracking-widest shadow-sm">Открыть</span>
+                   <span className="bg-white text-ink dark:text-black px-3 py-1 text-xs font-sans uppercase tracking-widest shadow-sm">Открыть</span>
                 </div>
               </div>
 

@@ -26,11 +26,7 @@ export default async function ResearchPage({ searchParams }: ResearchPageProps) 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
         {papers.items.map(paper => (
-          // ИСПРАВЛЕНО: dark:bg-card-bg и dark:border-gray-800
-          <div key={paper.id} className="bg-white dark:bg-card-bg p-6 border border-sepia dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
-             <div className="mb-4">
-                 <span className="text-xs font-sans font-bold text-accent uppercase tracking-wider">{paper.pdfUrl ? 'pdf доступен' : 'pdf недоступен'}</span>
-             </div>
+          <div key={paper.id} className="bg-white dark:bg-card-bg p-6 border border-sepia dark:border-gray-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
              <ArticleCard article={paper} />
           </div>
         ))}
