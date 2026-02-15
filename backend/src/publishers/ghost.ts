@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto';
 import type { Publisher } from './types.js';
 import type { PublishSubmissionInput, PublishSubmissionResult } from './types.js';
 import type { BackendEnv } from '../config/env.js';
-import { slugify } from '../lib/text.js';
+import { escapeHtml, slugify } from '../lib/text.js';
 
 type GhostPost = {
   id: string;
@@ -67,6 +67,7 @@ export class GhostPublisher implements Publisher {
 
     const jwt = createGhostAdminJwt(this.env.GHOST_ADMIN_API_KEY);
     const slug = `${slugify(input.submission.title)}-${input.submission.id.slice(0, 8)}`;
+    const safeAbstractHtml = `<p>${escapeHtml(input.submission.abstract)}</p>`;
     const adminUrl = new URL('/ghost/api/admin/posts/?source=html', this.env.GHOST_ADMIN_API_URL);
 
     const response = await fetch(adminUrl, {
@@ -80,7 +81,7 @@ export class GhostPublisher implements Publisher {
           {
             title: input.submission.title,
             slug,
-            html: `<p>${input.submission.abstract}</p>`,
+            html: safeAbstractHtml,
             status: 'published',
             published_at: new Date().toISOString(),
             tags: [input.section.toLowerCase()],
@@ -114,7 +115,7 @@ export class GhostPublisher implements Publisher {
         canonicalPath: `/article/${post.slug || slug}`,
         title: input.submission.title,
         excerpt: input.submission.abstract.slice(0, 320),
-        htmlContent: `<p>${input.submission.abstract}</p>`,
+        htmlContent: safeAbstractHtml,
         section: input.section,
         authorUserId: input.author.id,
         publishedAt: new Date(),
@@ -126,7 +127,7 @@ export class GhostPublisher implements Publisher {
         canonicalPath: `/article/${post.slug || slug}`,
         title: input.submission.title,
         excerpt: input.submission.abstract.slice(0, 320),
-        htmlContent: `<p>${input.submission.abstract}</p>`,
+        htmlContent: safeAbstractHtml,
         section: input.section,
         authorUserId: input.author.id,
         publishedAt: new Date(),

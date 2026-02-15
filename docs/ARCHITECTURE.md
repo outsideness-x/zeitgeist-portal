@@ -52,6 +52,7 @@ admin approve uses a backend publisher abstraction.
 - generic auth errors to avoid account enumeration leakage
 - route-level rbac checks for admin and author functionality
 - rate limiting on auth, analytics, and admin mutation routes
+- cors origin allowlist from `BACKEND_CORS_ORIGIN` and optional `BACKEND_CORS_ORIGINS`
 
 ## submissions workflow model
 
@@ -84,6 +85,20 @@ analytics is privacy-friendly and article-centric.
 - unique dedup key in `article_daily_visitor` (`article_id`, `date`, `visitor_id`)
 - no raw ip storage
 - upsert and transactional increments keep counters correct under concurrent writes
+- visitor dedup rows in `article_daily_visitor` should be pruned by scheduled retention jobs
+
+## html trust boundaries
+
+- published html rendered by the frontend should be treated as trusted editorial output
+- user-submitted abstract text is escaped before publisher adapters convert it to html
+- ghost html rendering should be limited to trusted editor roles in ghost admin
+
+## production edge requirements
+
+- terminate tls at the reverse proxy for `api.<domain>`
+- forward request ids and enforce request size limits
+- add baseline security headers at the reverse proxy
+- configure backup and restore runbooks for postgres and object storage
 
 ## engagement model
 

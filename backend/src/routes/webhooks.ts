@@ -9,8 +9,10 @@ export const registerWebhookRoutes = async (app: FastifyInstance) => {
       },
     },
   }, async (request, reply) => {
-    // this endpoint is intentionally a safe stub until ghost webhook handling is enabled
-    app.log.info({ payload: request.body }, 'received ghost webhook stub event');
+    app.log.info({
+      hasBody: request.body !== undefined,
+      event: request.headers['x-ghost-event'] ?? null,
+    }, 'received ghost webhook stub event');
     reply.code(202).send({ ok: true });
   });
 };

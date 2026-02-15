@@ -1,12 +1,13 @@
 import type { Publisher } from './types.js';
 import type { PublishSubmissionInput, PublishSubmissionResult } from './types.js';
-import { slugify } from '../lib/text.js';
+import { escapeHtml, slugify } from '../lib/text.js';
 
 export class LocalPublisher implements Publisher {
   // this publisher writes a local article record so localhost can serve approved content without ghost
   async publishSubmission(input: PublishSubmissionInput): Promise<PublishSubmissionResult> {
     const baseSlug = slugify(input.submission.title);
     const slug = `${baseSlug}-${input.submission.id.slice(0, 8)}`;
+    const safeAbstractHtml = `<p>${escapeHtml(input.submission.abstract)}</p>`;
 
     const article = await input.db.article.upsert({
       where: {
@@ -21,7 +22,7 @@ export class LocalPublisher implements Publisher {
         canonicalPath: `/article/${slug}`,
         title: input.submission.title,
         excerpt: input.submission.abstract.slice(0, 320),
-        htmlContent: `<p>${input.submission.abstract}</p>`,
+        htmlContent: safeAbstractHtml,
         section: input.section,
         authorUserId: input.author.id,
         publishedAt: new Date(),
@@ -30,7 +31,7 @@ export class LocalPublisher implements Publisher {
       update: {
         title: input.submission.title,
         excerpt: input.submission.abstract.slice(0, 320),
-        htmlContent: `<p>${input.submission.abstract}</p>`,
+        htmlContent: safeAbstractHtml,
         section: input.section,
         authorUserId: input.author.id,
         publishedAt: new Date(),

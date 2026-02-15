@@ -17,6 +17,15 @@ const loginBodySchema = z.object({
   password: z.string().min(8).max(128),
 });
 
+let missingUserHashPromise: Promise<string> | null = null;
+
+const getMissingUserHash = () => {
+  if (!missingUserHashPromise) {
+    missingUserHashPromise = hashPassword('missing-user-password-placeholder');
+  }
+  return missingUserHashPromise;
+};
+
 const setSessionCookies = (args: {
   reply: FastifyReply;
   sessionToken: string;
@@ -162,6 +171,8 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
     };
 
     if (!user) {
+      const missingUserHash = await getMissingUserHash();
+      await verifyPassword(missingUserHash, body.password);
       invalidCredentials();
       return;
     }

@@ -4,16 +4,18 @@ import { z } from 'zod';
 import { getEnv } from '../config/env.js';
 import { normalizePage } from '../lib/pagination.js';
 import { createPresignedGetUrl, createStorageClient } from '../lib/storage.js';
-import { requireAuth } from '../plugins/auth.js';
+import { requireAuth, requireRoles } from '../plugins/auth.js';
 
 const ensureSchema = z.object({
   source: z.enum(['local', 'ghost']),
-  externalId: z.string().trim().min(1).optional(),
-  slug: z.string().trim().min(1).optional(),
+  externalId: z.string().trim().min(1).max(200).optional(),
+  slug: z.string().trim().min(1).max(200).optional(),
   title: z.string().trim().min(1).max(280).optional(),
   excerpt: z.string().trim().max(2000).optional(),
   section: z.enum(['journal', 'research', 'nova']).optional(),
-  canonicalPath: z.string().trim().min(1).optional(),
+  canonicalPath: z.string().trim().min(1).max(300).refine((value) => value.startsWith('/article/'), {
+    message: 'canonicalPath must start with /article/',
+  }).optional(),
   featureImage: z.string().trim().url().optional(),
 });
 
@@ -48,7 +50,14 @@ export const registerArticleRoutes = async (app: FastifyInstance) => {
   const env = getEnv();
   const storageClient = createStorageClient(env);
 
-  app.post('/api/articles/ensure', async (request, reply) => {
+  app.post('/api/articles/ensure', {
+    config: {
+      rateLimit: {
+        max: 120,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
     const parsed = ensureSchema.safeParse(request.body);
     if (!parsed.success) {
       reply.code(400).send({ error: 'bad_request', message: parsed.error.issues[0]?.message ?? 'invalid request body' });
@@ -326,8 +335,12 @@ export const registerArticleRoutes = async (app: FastifyInstance) => {
   });
 
   app.get('/api/articles/:id/download', {
-    preHandler: [requireAuth],
+    preHandler: [requireAuth, requireRoles('AUTHOR', 'ADMIN')],
   }, async (request, reply) => {
+    if (!request.auth) {
+      return;
+    }
+
     const params = z.object({ id: z.string().min(1) }).safeParse(request.params);
     if (!params.success) {
       reply.code(400).send({ error: 'bad_request', message: 'invalid article id' });

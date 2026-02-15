@@ -160,3 +160,114 @@ npm run prisma:generate
 npm run prisma:deploy
 npm run test:integration
 ```
+
+## production deployment notes
+
+target topology:
+
+- `www.<your-domain>` points to ghost (ghost pro or managed host)
+- `api.<your-domain>` points to your vps reverse proxy for the fastify backend
+- postgres runs on the vps or managed postgres
+- s3-compatible bucket stores submission and article pdf assets
+
+ghost is optional in localhost and remains disabled by default.
+
+### backend production env checklist
+
+set these values in backend runtime:
+
+- `NODE_ENV=production`
+- `DATABASE_URL=postgresql://...`
+- `BACKEND_COOKIE_SECRET=<long random secret, at least 32 chars>`
+- `BACKEND_CORS_ORIGIN=https://www.<your-domain>`
+- `BACKEND_CORS_ORIGINS=https://app.<your-domain>,https://www.<your-domain>` when multiple web origins are needed
+- `S3_ENDPOINT=https://<your-s3-endpoint>`
+- `S3_REGION=<region>`
+- `S3_ACCESS_KEY_ID=<key>`
+- `S3_SECRET_ACCESS_KEY=<secret>`
+- `S3_BUCKET=<bucket-name>`
+- `S3_SIGNED_URL_EXPIRES_SECONDS=300`
+- `UPLOAD_MAX_BYTES=26214400` or your chosen limit
+- `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_SECONDS` tuned for your traffic
+- `ANALYTICS_COOKIE_MAX_AGE_DAYS=<value>`
+- `CONTENT_PROVIDER=ghost` only when ghost content api is configured
+- `PUBLISH_PROVIDER=ghost` only when ghost admin api is configured
+- `GHOST_CONTENT_API_URL`, `GHOST_CONTENT_API_KEY`, `GHOST_ADMIN_API_URL`, `GHOST_ADMIN_API_KEY` when ghost adapters are enabled
+
+### reverse proxy baseline for api domain
+
+example nginx location for `api.<your-domain>`:
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name api.example.com;
+
+  client_max_body_size 30m;
+  gzip on;
+  gzip_types application/json text/plain;
+
+  add_header strict-transport-security "max-age=31536000; includeSubDomains" always;
+  add_header x-content-type-options "nosniff" always;
+  add_header x-frame-options "DENY" always;
+  add_header referrer-policy "strict-origin-when-cross-origin" always;
+
+  location / {
+    proxy_http_version 1.1;
+    proxy_set_header host $host;
+    proxy_set_header x-forwarded-for $proxy_add_x_forwarded_for;
+    proxy_set_header x-forwarded-proto https;
+    proxy_set_header x-request-id $request_id;
+    proxy_read_timeout 60s;
+    proxy_send_timeout 60s;
+    proxy_connect_timeout 10s;
+    proxy_pass http://127.0.0.1:4000;
+  }
+}
+```
+
+### backup and retention baseline
+
+- postgres: daily full backups + point-in-time recovery if available
+- object storage: bucket versioning + lifecycle policy for noncurrent versions
+- analytics dedup retention: delete old `ArticleDailyVisitor` rows regularly (for example, keep 90 days):
+
+```sql
+delete from "ArticleDailyVisitor"
+where "date" < now() - interval '90 days';
+```
+
+schedule this as a daily cron job on the database.
+
+## pre-launch checklist
+
+### what to buy
+
+- a domain name
+- a ghost hosting plan (ghost pro or managed host)
+- a vps or managed runtime for backend api
+- postgres hosting (managed or self-hosted on vps)
+- s3-compatible object storage
+
+### dns setup
+
+- point `www` to ghost (usually `CNAME` to ghost host target)
+- point `api` to your vps public ip (`A`/`AAAA`) or load balancer
+- enable tls certificates for both `www` and `api`
+
+### configure before first launch
+
+- create postgres database and run backend prisma migrations
+- create s3/minio bucket and credentials
+- set backend env vars listed above
+- set ghost api keys only if using ghost adapters in production
+- set strict cors origins for your exact frontend domains
+
+### verify after deploy
+
+- open `https://api.<your-domain>/api/health` and confirm `ok: true`
+- register/login/logout from frontend and confirm cookie session works
+- publish one test submission through admin approve flow
+- verify only `author/admin` roles can download article pdf links
+- verify analytics counts move on article view and unique counts do not increment on repeated same-cookie views
+- verify logs do not contain passwords, session tokens, or raw webhook payloads

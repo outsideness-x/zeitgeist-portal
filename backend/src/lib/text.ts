@@ -17,3 +17,15 @@ export const slugify = (value: string) => {
 export const normalizeEmail = (email: string) => {
   return email.trim().toLowerCase();
 };
+
+const htmlEntityMap: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+export const escapeHtml = (value: string) => {
+  return value.replace(/[&<>"']/g, (char) => htmlEntityMap[char] ?? char);
+};

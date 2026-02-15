@@ -21,6 +21,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   BACKEND_COOKIE_SECRET: z.string().min(32),
   BACKEND_CORS_ORIGIN: z.string().url().default('http://localhost:3000'),
+  BACKEND_CORS_ORIGINS: optionalString,
   SESSION_TTL_HOURS: z.coerce.number().int().positive().default(168),
   CSRF_HEADER_NAME: z.string().default('x-csrf-token'),
   S3_ENDPOINT: z.string().url(),
