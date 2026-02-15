@@ -25,6 +25,7 @@ export default function UploadPage() {
   const [title, setTitle] = useState('');
   const [keywords, setKeywords] = useState('');
   const [abstract, setAbstract] = useState('');
+  const [requestedSection, setRequestedSection] = useState<'journal' | 'research' | 'nova'>('research');
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'completed'>('idle');
@@ -127,6 +128,7 @@ export default function UploadPage() {
           title,
           keywords,
           abstract,
+          requestedSection,
         },
       });
 
@@ -192,6 +194,20 @@ export default function UploadPage() {
             required
             minLength={5}
           />
+        </div>
+
+        <div className="mb-6">
+          <label htmlFor="requested-section" className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">раздел публикации</label>
+          <select
+            id="requested-section"
+            value={requestedSection}
+            onChange={(event) => setRequestedSection(event.target.value as 'journal' | 'research' | 'nova')}
+            className="w-full font-serif border-b-2 border-gray-200 focus:border-accent focus-visible:ring-1 focus-visible:ring-accent outline-none py-2 bg-transparent transition-colors"
+          >
+            <option value="journal">journal</option>
+            <option value="research">research</option>
+            <option value="nova">nova</option>
+          </select>
         </div>
 
         <div className="mb-6">
@@ -277,8 +293,8 @@ export default function UploadPage() {
 
         {submittedId && (
           <div className="mb-8 text-sm text-gray-600">
-            <Link href={`/dashboard/submissions/${submittedId}`} className="text-accent underline">
-              открыть карточку заявки
+            <Link href="/account" className="text-accent underline">
+              открыть кабинет заявок
             </Link>
           </div>
         )}

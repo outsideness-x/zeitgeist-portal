@@ -6,24 +6,28 @@ export interface Author {
 
 export interface Article {
   id: string;
+  internalArticleId?: string;
+  source?: 'local' | 'ghost';
+  externalId?: string;
+  slug?: string;
+  canonicalPath?: string;
   title: string;
   excerpt: string;
-  content?: string; // html string from ghost
+  content?: string;
   feature_image?: string;
   published_at: string;
   authors: Author[];
   tags: string[];
   reading_time?: number;
-  // add nova
   type: 'journal' | 'research' | 'nova';
-  pdfUrl?: string; // specific for research papers
+  pdfUrl?: string;
 }
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'researcher' | 'reader';
+  role: 'reader' | 'author' | 'admin';
 }
 
 export enum AuthMode {
@@ -31,7 +35,6 @@ export enum AuthMode {
   REGISTER = 'REGISTER'
 }
 
-// team member interface
 export interface TeamMember {
   id: string;
   name: string;
@@ -40,14 +43,13 @@ export interface TeamMember {
   bio: string;
 }
 
-// library book interface
 export interface LibraryBook {
   id: string;
   title: string;
   author: string;
   coverImage: string;
-  description: string; // short description for card
-  longDescription: string; // full description for detail page
+  description: string;
+  longDescription: string;
   pdfUrl: string;
   publishedYear: string;
   language: string;

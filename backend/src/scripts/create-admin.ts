@@ -7,7 +7,7 @@ const run = async () => {
   const [, , email, name, password] = process.argv;
 
   if (!email || !name || !password) {
-    throw new Error('usage: tsx src/scripts/create-editor.ts <email> <name> <password>');
+    throw new Error('usage: tsx src/scripts/create-admin.ts <email> <name> <password>');
   }
 
   const passwordHash = await hashPassword(password);
@@ -18,16 +18,16 @@ const run = async () => {
       email: email.toLowerCase(),
       name,
       passwordHash,
-      role: 'EDITOR',
+      role: 'ADMIN',
     },
     update: {
       name,
       passwordHash,
-      role: 'EDITOR',
+      role: 'ADMIN',
     },
   });
 
-  console.log(`editor ready: ${user.email}`);
+  console.log(`admin ready: ${user.email}`);
 };
 
 run()

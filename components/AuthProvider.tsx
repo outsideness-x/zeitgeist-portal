@@ -6,7 +6,7 @@ type AuthUser = {
   id: string;
   name: string;
   email: string;
-  role: 'READER' | 'RESEARCHER' | 'REVIEWER' | 'EDITOR' | 'ADMIN';
+  role: 'READER' | 'AUTHOR' | 'ADMIN';
 };
 
 type AuthContextValue = {

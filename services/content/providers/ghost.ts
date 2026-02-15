@@ -101,6 +101,10 @@ export class GhostContentProvider implements ContentProvider {
 
     return {
       id: post.slug || post.id,
+      source: 'ghost',
+      externalId: post.id,
+      slug: post.slug || post.id,
+      canonicalPath: `/article/${post.slug || post.id}`,
       title: post.title,
       excerpt: post.custom_excerpt || post.excerpt || '',
       content: post.html ?? undefined,
@@ -211,4 +215,3 @@ export class GhostContentProvider implements ContentProvider {
     return books.find((book) => book.id === id);
   });
 }
-

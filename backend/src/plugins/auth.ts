@@ -20,7 +20,7 @@ export const authPlugin = fp(async (app) => {
 
     const tokenHash = hashToken(token);
 
-    // this loads auth context from db so all route guards rely on the same source of truth
+    // this loads auth context from db so all route guards share the same source of truth
     const session = await app.prisma.session.findFirst({
       where: {
         tokenHash,
@@ -34,12 +34,8 @@ export const authPlugin = fp(async (app) => {
     });
 
     if (!session) {
-      reply.clearCookie(SESSION_COOKIE_NAME, {
-        path: '/',
-      });
-      reply.clearCookie(CSRF_COOKIE_NAME, {
-        path: '/',
-      });
+      reply.clearCookie(SESSION_COOKIE_NAME, { path: '/' });
+      reply.clearCookie(CSRF_COOKIE_NAME, { path: '/' });
       return;
     }
 
@@ -87,6 +83,7 @@ export const requireCsrf: preHandlerHookHandler = async (request, reply) => {
       error: 'forbidden',
       message: 'csrf validation failed',
     });
+    return;
   }
 };
 
@@ -105,6 +102,7 @@ export const requireRoles = (...roles: Role[]): preHandlerHookHandler => {
         error: 'forbidden',
         message: 'insufficient permissions',
       });
+      return;
     }
   };
 };

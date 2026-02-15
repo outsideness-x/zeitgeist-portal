@@ -1,57 +1,51 @@
 # zeitgeist app
 
-next.js app router portal with a local-first content layer, plus a separate fastify backend for auth, submissions, and signed file flows.
+next.js app router frontend with a fastify backend for auth, submissions, editorial workflow, bookmarks, reactions, and analytics.
 
-ghost is supported through an adapter but is not required for local development.
+localhost works without ghost. ghost adapters exist but are disabled by default.
 
-## architecture overview
+## stack
 
-- frontend: next.js app router in the repository root
-- content provider facade: `services/content/index.ts`
-  - `local` provider is default and works without ghost
-  - `ghost` provider is available when env is configured
-- backend: fastify + prisma in `backend/`
-- database: postgresql (local via docker compose)
-- object storage: minio (local via docker compose)
+- frontend: next.js app router + tailwind
+- backend: fastify + prisma + zod + argon2
+- db: postgresql
+- object storage: minio
 
-## local prerequisites
+## local setup
+
+### requirements
 
 - node.js 20+
 - npm 10+
-- docker and docker compose
+- docker compose
 
-## environment setup
-
-### root env
+### env files
 
 ```bash
 cp .env.example .env
-```
-
-default local setup uses:
-
-- `CONTENT_PROVIDER=local`
-- `NEXT_PUBLIC_BACKEND_URL=http://localhost:4000`
-
-### backend env
-
-```bash
 cp backend/.env.example backend/.env
 ```
 
-## start local infrastructure
+default local adapter values:
+
+- `CONTENT_PROVIDER=local`
+- `PUBLISH_PROVIDER=local`
+
+## run infrastructure
 
 ```bash
 docker compose up -d
 ```
 
-this starts:
+services:
 
-- postgresql on `localhost:5432`
-- minio api on `localhost:9000`
-- minio console on `localhost:9001`
+- postgres: `localhost:5432`
+- minio api: `localhost:9000`
+- minio console: `localhost:9001`
 
-## backend setup and run
+create bucket `zeitgeist` in minio console if it does not exist.
+
+## backend run
 
 ```bash
 cd backend
@@ -61,79 +55,108 @@ npm run prisma:migrate
 npm run dev
 ```
 
-backend default url: `http://localhost:4000`
+backend url: `http://localhost:4000`
 
-## create the first editor user
-
-run this in another terminal:
+## create initial admin user
 
 ```bash
 cd backend
-npm run create:editor -- editor@example.com "editor user" "strongpassword123"
+npm run seed:admin -- admin@example.com "admin user" "strongpassword123"
 ```
 
-## frontend setup and run
-
-in repository root:
+## frontend run
 
 ```bash
 npm install
 npm run dev
 ```
 
-frontend default url: `http://localhost:3000`
+frontend url: `http://localhost:3000`
 
-## local upload flow check
+## ghost integration
 
-- open `http://localhost:3000`
-- login/register from the header modal
+ghost is optional for local development.
+
+to enable ghost paths later:
+
+- set `CONTENT_PROVIDER=ghost` and provide content api env vars
+- set `PUBLISH_PROVIDER=ghost` and provide admin api env vars
+
+if ghost adapters are enabled without env values, startup fails with a clear error.
+
+## local e2e checklist
+
+- auth
+- register, login, logout, and `/api/auth/me` in browser session
+
+- article engagement
+- open article page and verify view counts increase
+- toggle bookmark while logged in
+- set/update/clear reactions while logged in
+
+- account cabinet
+- open `/account`
+- verify bookmarks list
+- verify submissions list and review messages
+
+- manuscript submission
 - open `/upload`
-- submit metadata + pdf
-- verify upload progress reaches 100%
-- open `/dashboard/submissions`
-- open a submission detail page
-- if reviewer/editor/admin, update status
-- use download action and verify signed url response
+- create submission, upload pdf to minio, complete upload
+- verify submission status appears in `/account`
 
-## backend tests
+- admin cabinet
+- login as admin and open `/admin`
+- filter queue by status
+- request changes with message
+- reject with optional reason
+- approve with section and publish
 
-```bash
-cd backend
-npm test
-```
+- author promotion and analytics
+- approve first submission from a reader account
+- confirm user role promoted to `author`
+- confirm `/account` shows author analytics charts and top articles
 
-the integration suite uses supertest and mocks object storage helpers.
+- local publishing
+- after approval, confirm published article is visible in frontend lists via local content overlay
 
-## ghost provider notes
+## backend integration tests
 
-local run does not require ghost.
+backend integration tests are in `backend/tests/integration.test.ts` and include:
 
-to enable ghost provider later:
+- auth register, login, me
+- analytics view increment and unique visitor dedup by `zg_vid`
+- approve path concurrency safety with parallel admin approve calls
+- submission upload flow and author promotion
 
-- set `CONTENT_PROVIDER=ghost` in root `.env`
-- set required env values:
-  - `GHOST_CONTENT_API_URL`
-  - `GHOST_CONTENT_API_KEY`
-  - `GHOST_IMAGE_HOST` (optional but recommended for next image remote patterns)
-
-if ghost provider is selected but required env vars are missing, the app throws a clear initialization error.
-
-## useful commands
-
-### root
-
-```bash
-npm run dev
-npm run build -- --webpack
-npm run lint
-```
-
-### backend
+### run integration tests locally
 
 ```bash
 cd backend
-npm run dev
-npm run typecheck
-npm run test
-npm run build
+cp .env.test.example .env.test
+docker compose -f docker-compose.test.yml up -d
+set -a && source .env.test && set +a
+npm install
+npm run prisma:generate
+npm run prisma:deploy
+npm run test:integration
+```
+
+cleanup:
+
+```bash
+cd backend
+docker compose -f docker-compose.test.yml down -v
+```
+
+### run ci steps locally
+
+```bash
+cd backend
+cp .env.test.example .env.test
+docker compose -f docker-compose.test.yml up -d
+set -a && source .env.test && set +a
+npm install --no-audit --no-fund
+npm run prisma:generate
+npm run prisma:deploy
+npm run test:integration
 ```

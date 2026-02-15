@@ -113,6 +113,7 @@ const LOCAL_LIBRARY: LibraryBook[] = [
 ];
 
 const LOCAL_DELAY_MS = Number(process.env.SIMULATED_API_DELAY_MS ?? 0);
+const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000';
 
 const maybeWait = async () => {
   if (LOCAL_DELAY_MS > 0) {
@@ -143,18 +144,131 @@ const toPaginatedResult = <T,>(items: T[], pagination?: PaginationInput): Pagina
   };
 };
 
+type PublishedArticle = {
+  id: string;
+  internalArticleId: string;
+  slug: string;
+  canonicalPath: string;
+  source: string;
+  title: string;
+  excerpt: string;
+  htmlContent?: string | null;
+  featureImage?: string | null;
+  section: 'journal' | 'research' | 'nova';
+  publishedAt: string;
+  author?: { id: string; name: string } | null;
+  pdfAvailable: boolean;
+};
+
+type PublishedArticleListResponse = {
+  items: PublishedArticle[];
+};
+
+type PublishedArticleResponse = {
+  article: PublishedArticle;
+};
+
+const toLocalArticle = (article: Article): Article => {
+  return {
+    ...article,
+    source: 'local',
+    slug: article.id,
+    canonicalPath: article.canonicalPath ?? `/article/${article.id}`,
+  };
+};
+
+const fromPublishedArticle = (item: PublishedArticle): Article => {
+  const authorName = item.author?.name ?? 'редакция';
+  return {
+    id: item.slug,
+    internalArticleId: item.internalArticleId,
+    source: 'local',
+    slug: item.slug,
+    canonicalPath: item.canonicalPath,
+    title: item.title,
+    excerpt: item.excerpt,
+    content: item.htmlContent ?? undefined,
+    feature_image: item.featureImage ?? undefined,
+    published_at: item.publishedAt,
+    authors: [{ id: item.author?.id ?? `author-${item.internalArticleId}`, name: authorName }],
+    tags: [item.section],
+    type: item.section,
+    reading_time: undefined,
+    pdfUrl: undefined,
+  };
+};
+
+const fetchPublishedArticles = cache(async (type?: ArticleKind): Promise<Article[]> => {
+  const search = new URLSearchParams();
+  search.set('page', '1');
+  search.set('pageSize', '100');
+  if (type) {
+    search.set('section', type);
+  }
+
+  const url = `${backendBaseUrl}/api/content/articles?${search.toString()}`;
+
+  try {
+    const response = await fetch(url, {
+      next: { revalidate: 15 },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const payload = (await response.json()) as PublishedArticleListResponse;
+    return payload.items.map(fromPublishedArticle);
+  } catch {
+    return [];
+  }
+});
+
+const fetchPublishedArticleBySlug = cache(async (slug: string): Promise<Article | undefined> => {
+  try {
+    const response = await fetch(`${backendBaseUrl}/api/content/articles/${encodeURIComponent(slug)}`, {
+      next: { revalidate: 15 },
+    });
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const payload = (await response.json()) as PublishedArticleResponse;
+    return fromPublishedArticle(payload.article);
+  } catch {
+    return undefined;
+  }
+});
+
 export class LocalContentProvider implements ContentProvider {
   // cache keeps local reads stable across metadata and page render in the same request graph
   fetchArticles = cache(async (type?: ArticleKind, pagination?: PaginationInput): Promise<PaginatedResult<Article>> => {
     await maybeWait();
-    const filtered = type ? LOCAL_ARTICLES.filter((article) => article.type === type) : LOCAL_ARTICLES;
-    const sorted = [...filtered].sort((a, b) => +new Date(b.published_at) - +new Date(a.published_at));
+    const staticFiltered = type ? LOCAL_ARTICLES.filter((article) => article.type === type) : LOCAL_ARTICLES;
+    const localSeedArticles = staticFiltered.map(toLocalArticle);
+    const publishedArticles = await fetchPublishedArticles(type);
+
+    const deduped = new Map<string, Article>();
+    [...localSeedArticles, ...publishedArticles].forEach((article) => {
+      deduped.set(article.id, article);
+    });
+
+    const sorted = [...deduped.values()].sort((a, b) => +new Date(b.published_at) - +new Date(a.published_at));
     return toPaginatedResult(sorted, pagination);
   });
 
   fetchArticleById = cache(async (id: string): Promise<Article | undefined> => {
     await maybeWait();
-    return LOCAL_ARTICLES.find((article) => article.id === id);
+    const published = await fetchPublishedArticleBySlug(id);
+    if (published) {
+      return published;
+    }
+    const localSeed = LOCAL_ARTICLES.find((article) => article.id === id);
+    if (!localSeed) {
+      return undefined;
+    }
+    return toLocalArticle(localSeed);
   });
 
   fetchTeamMembers = cache(async (): Promise<TeamMember[]> => {
@@ -172,4 +286,3 @@ export class LocalContentProvider implements ContentProvider {
     return LOCAL_LIBRARY.find((book) => book.id === id);
   });
 }
-

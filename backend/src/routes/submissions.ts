@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { Role, SubmissionStatus } from '@prisma/client';
+import type { ArticleSection, SubmissionStatus } from '@prisma/client';
 import { z } from 'zod';
 import { getEnv } from '../config/env.js';
 import { writeAuditLog } from '../lib/audit.js';
@@ -13,14 +13,15 @@ import {
   headStoredObject,
   readObjectPrefix,
 } from '../lib/storage.js';
-import { requireAuth, requireCsrf, requireRoles } from '../plugins/auth.js';
-
-const privilegedRoles: Role[] = ['ADMIN', 'EDITOR', 'REVIEWER'];
+import { requireAuth, requireCsrf } from '../plugins/auth.js';
+import { normalizePage } from '../lib/pagination.js';
+import { transitionFromAuthorResubmit, transitionFromUploadComplete } from '../lib/submission-workflow.js';
 
 const createSubmissionSchema = z.object({
   title: z.string().trim().min(3).max(280),
   keywords: z.union([z.array(z.string().trim().min(1).max(80)), z.string().trim()]),
   abstract: z.string().trim().min(40).max(12000),
+  requestedSection: z.enum(['journal', 'research', 'nova']).optional(),
 });
 
 const uploadInitSchema = z.object({
@@ -32,14 +33,28 @@ const uploadCompleteSchema = z.object({
   originalName: z.string().trim().min(1).max(260).default('submission.pdf'),
 });
 
-const statusSchema = z.object({
-  status: z.enum(['UPLOADED', 'IN_REVIEW', 'NEEDS_CHANGES', 'ACCEPTED', 'REJECTED']),
-});
-
-const listQuerySchema = z.object({
+const meListQuerySchema = z.object({
+  status: z.enum(['draft', 'submitted', 'in_review', 'needs_changes', 'resubmitted', 'approved', 'published', 'rejected']).optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(50).optional(),
 });
+
+const sectionMap: Record<'journal' | 'research' | 'nova', ArticleSection> = {
+  journal: 'JOURNAL',
+  research: 'RESEARCH',
+  nova: 'NOVA',
+};
+
+const statusMap: Record<string, SubmissionStatus> = {
+  draft: 'DRAFT',
+  submitted: 'SUBMITTED',
+  in_review: 'IN_REVIEW',
+  needs_changes: 'NEEDS_CHANGES',
+  resubmitted: 'RESUBMITTED',
+  approved: 'APPROVED',
+  published: 'PUBLISHED',
+  rejected: 'REJECTED',
+};
 
 const normalizeKeywords = (raw: string[] | string) => {
   if (Array.isArray(raw)) {
@@ -51,11 +66,15 @@ const normalizeKeywords = (raw: string[] | string) => {
     .filter(Boolean);
 };
 
-const canAccessSubmission = (args: { role: Role; userId: string; authorUserId: string | null }) => {
-  if (privilegedRoles.includes(args.role)) {
+const assertCanAccessSubmission = (args: {
+  authUserId: string;
+  authRole: 'READER' | 'AUTHOR' | 'ADMIN';
+  authorUserId: string;
+}) => {
+  if (args.authRole === 'ADMIN') {
     return true;
   }
-  return args.authorUserId === args.userId;
+  return args.authUserId === args.authorUserId;
 };
 
 export const registerSubmissionRoutes = async (app: FastifyInstance) => {
@@ -82,6 +101,7 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
         title: parsed.data.title,
         keywords,
         abstract: parsed.data.abstract,
+        requestedSection: parsed.data.requestedSection ? sectionMap[parsed.data.requestedSection] : null,
         authorUserId: request.auth.userId,
         status: 'DRAFT',
       },
@@ -98,9 +118,7 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       },
     });
 
-    reply.code(201).send({
-      submission,
-    });
+    reply.code(201).send({ submission });
   });
 
   app.post('/api/submissions/:id/upload/init', {
@@ -129,6 +147,7 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       select: {
         id: true,
         authorUserId: true,
+        status: true,
       },
     });
 
@@ -137,9 +156,17 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       return;
     }
 
-    // this permission gate prevents users from uploading files into submissions they do not own
-    if (!canAccessSubmission({ role: request.auth.role, userId: request.auth.userId, authorUserId: submission.authorUserId })) {
+    if (!assertCanAccessSubmission({
+      authUserId: request.auth.userId,
+      authRole: request.auth.role,
+      authorUserId: submission.authorUserId,
+    })) {
       reply.code(403).send({ error: 'forbidden', message: 'insufficient permissions' });
+      return;
+    }
+
+    if (submission.status === 'REJECTED' || submission.status === 'APPROVED' || submission.status === 'PUBLISHED') {
+      reply.code(409).send({ error: 'conflict', message: 'upload is not allowed for current submission status' });
       return;
     }
 
@@ -150,13 +177,6 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       key: storageKey,
       expiresInSeconds: env.S3_SIGNED_URL_EXPIRES_SECONDS,
       contentType: 'application/pdf',
-    });
-
-    await app.prisma.submission.update({
-      where: { id: submission.id },
-      data: {
-        status: 'UPLOADING',
-      },
     });
 
     await writeAuditLog({
@@ -200,6 +220,7 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       select: {
         id: true,
         authorUserId: true,
+        status: true,
       },
     });
 
@@ -208,7 +229,11 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       return;
     }
 
-    if (!canAccessSubmission({ role: request.auth.role, userId: request.auth.userId, authorUserId: submission.authorUserId })) {
+    if (!assertCanAccessSubmission({
+      authUserId: request.auth.userId,
+      authRole: request.auth.role,
+      authorUserId: submission.authorUserId,
+    })) {
       reply.code(403).send({ error: 'forbidden', message: 'insufficient permissions' });
       return;
     }
@@ -261,7 +286,26 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       key: body.data.storageKey,
     });
 
+    let nextStatus: SubmissionStatus;
+    try {
+      nextStatus = transitionFromUploadComplete(submission.status);
+    } catch {
+      reply.code(409).send({ error: 'conflict', message: 'upload is not allowed for current submission status' });
+      return;
+    }
+
     const result = await app.prisma.$transaction(async (tx) => {
+      const lastVersion = await tx.submissionFile.aggregate({
+        where: {
+          submissionId: submission.id,
+        },
+        _max: {
+          version: true,
+        },
+      });
+
+      const version = (lastVersion._max.version ?? 0) + 1;
+
       const file = await tx.submissionFile.create({
         data: {
           submissionId: submission.id,
@@ -270,13 +314,15 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
           sha256,
           mime,
           originalName: body.data.originalName,
+          version,
         },
       });
 
       const updatedSubmission = await tx.submission.update({
         where: { id: submission.id },
         data: {
-          status: 'UPLOADED',
+          status: nextStatus,
+          lastSubmittedAt: new Date(),
         },
       });
 
@@ -292,7 +338,17 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       metadata: {
         storageKey: result.file.storageKey,
         sizeBytes: result.file.sizeBytes,
+        version: result.file.version,
+        nextStatus,
       },
+    });
+
+    await writeAuditLog({
+      prisma: app.prisma,
+      actorUserId: request.auth.userId,
+      action: nextStatus === 'RESUBMITTED' ? 'submission.resubmitted' : 'submission.submitted',
+      entityType: 'submission',
+      entityId: submission.id,
     });
 
     reply.send({
@@ -301,25 +357,26 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
     });
   });
 
-  app.get('/api/submissions', {
+  app.get('/api/submissions/me', {
     preHandler: [requireAuth],
   }, async (request, reply) => {
     if (!request.auth) {
       return;
     }
 
-    const parsedQuery = listQuerySchema.safeParse(request.query);
+    const parsedQuery = meListQuerySchema.safeParse(request.query);
     if (!parsedQuery.success) {
       reply.code(400).send({ error: 'bad_request', message: 'invalid query parameters' });
       return;
     }
 
-    const page = parsedQuery.data.page ?? 1;
-    const pageSize = parsedQuery.data.pageSize ?? 20;
+    const { page, pageSize, skip, take } = normalizePage(parsedQuery.data.page, parsedQuery.data.pageSize, 50);
+    const status = parsedQuery.data.status ? statusMap[parsedQuery.data.status] : undefined;
 
-    const where = privilegedRoles.includes(request.auth.role)
-      ? {}
-      : { authorUserId: request.auth.userId };
+    const where = {
+      authorUserId: request.auth.userId,
+      ...(status ? { status } : {}),
+    };
 
     const [total, items] = await Promise.all([
       app.prisma.submission.count({ where }),
@@ -327,16 +384,31 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
         where,
         include: {
           files: {
-            orderBy: { uploadedAt: 'desc' },
+            orderBy: { version: 'desc' },
             take: 1,
           },
-          author: {
-            select: { id: true, name: true, email: true, role: true },
+          reviewMessages: {
+            orderBy: { createdAt: 'desc' },
+            include: {
+              admin: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          publishedArticle: {
+            select: {
+              id: true,
+              slug: true,
+              title: true,
+            },
           },
         },
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        skip,
+        take,
       }),
     ]);
 
@@ -349,7 +421,7 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
     });
   });
 
-  app.get('/api/submissions/:id', {
+  app.get('/api/submissions/me/:id', {
     preHandler: [requireAuth],
   }, async (request, reply) => {
     if (!request.auth) {
@@ -366,10 +438,27 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       where: { id: params.data.id },
       include: {
         files: {
-          orderBy: { uploadedAt: 'desc' },
+          orderBy: { version: 'desc' },
         },
-        author: {
-          select: { id: true, name: true, email: true, role: true },
+        reviewMessages: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            admin: {
+              select: {
+                id: true,
+                name: true,
+                role: true,
+              },
+            },
+          },
+        },
+        publishedArticle: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            source: true,
+          },
         },
       },
     });
@@ -379,7 +468,7 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       return;
     }
 
-    if (!canAccessSubmission({ role: request.auth.role, userId: request.auth.userId, authorUserId: submission.authorUserId })) {
+    if (submission.authorUserId !== request.auth.userId) {
       reply.code(403).send({ error: 'forbidden', message: 'insufficient permissions' });
       return;
     }
@@ -387,45 +476,88 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
     reply.send({ submission });
   });
 
-  app.post('/api/submissions/:id/status', {
-    preHandler: [requireAuth, requireCsrf, requireRoles('EDITOR', 'REVIEWER', 'ADMIN')],
+  app.post('/api/submissions/:id/resubmit', {
+    preHandler: [requireAuth, requireCsrf],
   }, async (request, reply) => {
     if (!request.auth) {
       return;
     }
 
     const params = z.object({ id: z.string().min(1) }).safeParse(request.params);
-    const body = statusSchema.safeParse(request.body);
-
-    if (!params.success || !body.success) {
-      reply.code(400).send({ error: 'bad_request', message: 'invalid request payload' });
+    if (!params.success) {
+      reply.code(400).send({ error: 'bad_request', message: 'invalid submission id' });
       return;
     }
 
-    const submission = await app.prisma.submission.update({
-      where: { id: params.data.id },
-      data: {
-        status: body.data.status as SubmissionStatus,
+    const submission = await app.prisma.submission.findUnique({
+      where: {
+        id: params.data.id,
       },
-    }).catch(() => null);
+      select: {
+        id: true,
+        authorUserId: true,
+        status: true,
+      },
+    });
 
     if (!submission) {
       reply.code(404).send({ error: 'not_found', message: 'submission not found' });
       return;
     }
 
-    await writeAuditLog({
-      prisma: app.prisma,
-      actorUserId: request.auth.userId,
-      action: 'submission.status_update',
-      entityType: 'submission',
-      entityId: submission.id,
-      metadata: {
-        status: submission.status,
+    if (submission.authorUserId !== request.auth.userId) {
+      reply.code(403).send({ error: 'forbidden', message: 'insufficient permissions' });
+      return;
+    }
+
+    const latestFile = await app.prisma.submissionFile.findFirst({
+      where: {
+        submissionId: submission.id,
+      },
+      orderBy: {
+        version: 'desc',
+      },
+      select: {
+        id: true,
       },
     });
 
-    reply.send({ submission });
+    if (!latestFile) {
+      reply.code(409).send({ error: 'conflict', message: 'resubmit requires an uploaded file' });
+      return;
+    }
+
+    let nextStatus: SubmissionStatus;
+    try {
+      nextStatus = transitionFromAuthorResubmit(submission.status);
+    } catch {
+      reply.code(409).send({ error: 'conflict', message: 'resubmit is not allowed for current submission status' });
+      return;
+    }
+
+    const updatedSubmission = await app.prisma.submission.update({
+      where: {
+        id: submission.id,
+      },
+      data: {
+        status: nextStatus,
+        lastSubmittedAt: new Date(),
+      },
+    });
+
+    await writeAuditLog({
+      prisma: app.prisma,
+      actorUserId: request.auth.userId,
+      action: nextStatus === 'RESUBMITTED' ? 'submission.resubmitted' : 'submission.submitted',
+      entityType: 'submission',
+      entityId: submission.id,
+      metadata: {
+        previousStatus: submission.status,
+        nextStatus,
+      },
+    });
+
+    reply.send({ submission: updatedSubmission });
   });
 
   app.get('/api/submissions/:id/download', {
@@ -445,7 +577,7 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       where: { id: params.data.id },
       include: {
         files: {
-          orderBy: { uploadedAt: 'desc' },
+          orderBy: { version: 'desc' },
           take: 1,
         },
       },
@@ -456,7 +588,9 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
       return;
     }
 
-    if (!canAccessSubmission({ role: request.auth.role, userId: request.auth.userId, authorUserId: submission.authorUserId })) {
+    const canAccess = request.auth.role === 'ADMIN' || submission.authorUserId === request.auth.userId;
+
+    if (!canAccess) {
       reply.code(403).send({ error: 'forbidden', message: 'insufficient permissions' });
       return;
     }

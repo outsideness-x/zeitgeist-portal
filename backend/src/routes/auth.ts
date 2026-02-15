@@ -4,6 +4,7 @@ import { getEnv } from '../config/env.js';
 import { createCsrfToken, createOpaqueToken, hashPassword, hashToken, verifyPassword } from '../lib/auth.js';
 import { writeAuditLog } from '../lib/audit.js';
 import { requireAuth, requireCsrf } from '../plugins/auth.js';
+import { normalizeEmail } from '../lib/text.js';
 
 const registerBodySchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -33,7 +34,7 @@ const setSessionCookies = (args: {
     expires: args.expiresAt,
   });
 
-  // this csrf token is readable by the client and must be echoed in a custom header
+  // this csrf cookie is readable by the client and must match the request header
   args.reply.setCookie('zg_csrf', args.csrfToken, {
     path: '/',
     httpOnly: false,
@@ -41,6 +42,24 @@ const setSessionCookies = (args: {
     secure: isProd,
     expires: args.expiresAt,
   });
+};
+
+const createSessionForUser = async (app: FastifyInstance, userId: string) => {
+  const sessionToken = createOpaqueToken();
+  const tokenHash = hashToken(sessionToken);
+  const csrfToken = createCsrfToken();
+  const expiresAt = new Date(Date.now() + getEnv().SESSION_TTL_HOURS * 60 * 60 * 1000);
+
+  await app.prisma.session.create({
+    data: {
+      userId,
+      tokenHash,
+      csrfToken,
+      expiresAt,
+    },
+  });
+
+  return { sessionToken, csrfToken, expiresAt };
 };
 
 export const registerAuthRoutes = async (app: FastifyInstance) => {
@@ -59,15 +78,18 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
     }
 
     const body = parsed.data;
+    const normalizedEmail = normalizeEmail(body.email);
 
     const existingUser = await app.prisma.user.findUnique({
-      where: { email: body.email.toLowerCase() },
+      where: { email: normalizedEmail },
+      select: { id: true },
     });
 
+    // this keeps auth failures generic so email presence cannot be inferred by response text
     if (existingUser) {
-      reply.code(409).send({
-        error: 'conflict',
-        message: 'email is already registered',
+      reply.code(400).send({
+        error: 'bad_request',
+        message: 'unable to process credentials',
       });
       return;
     }
@@ -76,25 +98,19 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
     const user = await app.prisma.user.create({
       data: {
         name: body.name,
-        email: body.email.toLowerCase(),
+        email: normalizedEmail,
         passwordHash,
-        role: 'RESEARCHER',
+        role: 'READER',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
       },
     });
 
-    const sessionToken = createOpaqueToken();
-    const tokenHash = hashToken(sessionToken);
-    const csrfToken = createCsrfToken();
-    const expiresAt = new Date(Date.now() + getEnv().SESSION_TTL_HOURS * 60 * 60 * 1000);
-
-    await app.prisma.session.create({
-      data: {
-        userId: user.id,
-        tokenHash,
-        csrfToken,
-        expiresAt,
-      },
-    });
+    const { sessionToken, csrfToken, expiresAt } = await createSessionForUser(app, user.id);
 
     await writeAuditLog({
       prisma: app.prisma,
@@ -107,15 +123,7 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
 
     setSessionCookies({ reply, sessionToken, csrfToken, expiresAt });
 
-    reply.code(201).send({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-      csrfToken,
-    });
+    reply.code(201).send({ user, csrfToken });
   });
 
   app.post('/api/auth/login', {
@@ -133,41 +141,38 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
     }
 
     const body = parsed.data;
+    const normalizedEmail = normalizeEmail(body.email);
 
     const user = await app.prisma.user.findUnique({
-      where: { email: body.email.toLowerCase() },
+      where: { email: normalizedEmail },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        passwordHash: true,
+      },
     });
 
-    if (!user) {
+    const invalidCredentials = () => {
       reply.code(401).send({
         error: 'unauthorized',
-        message: 'invalid email or password',
+        message: 'invalid credentials',
       });
+    };
+
+    if (!user) {
+      invalidCredentials();
       return;
     }
 
     const passwordOk = await verifyPassword(user.passwordHash, body.password);
     if (!passwordOk) {
-      reply.code(401).send({
-        error: 'unauthorized',
-        message: 'invalid email or password',
-      });
+      invalidCredentials();
       return;
     }
 
-    const sessionToken = createOpaqueToken();
-    const tokenHash = hashToken(sessionToken);
-    const csrfToken = createCsrfToken();
-    const expiresAt = new Date(Date.now() + getEnv().SESSION_TTL_HOURS * 60 * 60 * 1000);
-
-    await app.prisma.session.create({
-      data: {
-        userId: user.id,
-        tokenHash,
-        csrfToken,
-        expiresAt,
-      },
-    });
+    const { sessionToken, csrfToken, expiresAt } = await createSessionForUser(app, user.id);
 
     await writeAuditLog({
       prisma: app.prisma,

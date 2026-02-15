@@ -23,7 +23,11 @@ export const Header: React.FC = () => {
   ];
 
   const navItems = user
-    ? [...baseNavItems, { href: '/dashboard/submissions', label: 'Кабинет' }]
+    ? [
+      ...baseNavItems,
+      { href: '/account', label: 'Кабинет' },
+      ...(user.role === 'ADMIN' ? [{ href: '/admin', label: 'Админ' }] : []),
+    ]
     : baseNavItems;
 
   const isActive = (path: string) => pathname === path ? "text-accent border-b border-accent" : "text-ink hover:text-accent transition-colors dark:text-gray-300 dark:hover:text-white";

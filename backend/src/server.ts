@@ -6,11 +6,15 @@ import sensible from '@fastify/sensible';
 import { getEnv } from './config/env.js';
 import { prismaPlugin } from './plugins/prisma.js';
 import { authPlugin } from './plugins/auth.js';
-import { registerAuthRoutes } from './routes/auth.js';
-import { registerSubmissionRoutes } from './routes/submissions.js';
-import { registerLibraryRoutes } from './routes/library.js';
-import { registerWebhookRoutes } from './routes/webhooks.js';
 import { registerHealthRoutes } from './routes/health.js';
+import { registerAuthRoutes } from './routes/auth.js';
+import { registerArticleRoutes } from './routes/articles.js';
+import { registerBookmarkRoutes } from './routes/bookmarks.js';
+import { registerReactionRoutes } from './routes/reactions.js';
+import { registerAnalyticsRoutes } from './routes/analytics.js';
+import { registerSubmissionRoutes } from './routes/submissions.js';
+import { registerAdminRoutes } from './routes/admin.js';
+import { registerWebhookRoutes } from './routes/webhooks.js';
 
 export const buildServer = () => {
   const env = getEnv();
@@ -45,8 +49,12 @@ export const buildServer = () => {
 
   app.register(registerHealthRoutes);
   app.register(registerAuthRoutes);
+  app.register(registerArticleRoutes);
+  app.register(registerBookmarkRoutes);
+  app.register(registerReactionRoutes);
+  app.register(registerAnalyticsRoutes);
   app.register(registerSubmissionRoutes);
-  app.register(registerLibraryRoutes);
+  app.register(registerAdminRoutes);
   app.register(registerWebhookRoutes);
 
   return app;

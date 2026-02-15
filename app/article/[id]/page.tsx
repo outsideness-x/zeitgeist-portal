@@ -2,6 +2,7 @@ import { fetchArticleById } from '@/services/content';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import { ArticleEngagement } from '@/components/ArticleEngagement';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -38,6 +39,8 @@ export default async function ArticlePage({ params }: Props) {
     month: 'long',
     day: 'numeric',
   });
+  const articleSource = article.source ?? 'local';
+  const articleSlug = article.slug ?? article.id;
 
   return (
     <article className="pb-20 min-h-screen bg-paper dark:bg-black transition-colors duration-300">
@@ -110,6 +113,16 @@ export default async function ArticlePage({ params }: Props) {
             <a href={article.pdfUrl} className="text-accent underline hover:text-ink dark:hover:text-white">Скачать PDF</a>
           </div>
         )}
+
+        <ArticleEngagement
+          source={articleSource}
+          slug={articleSlug}
+          externalId={article.externalId}
+          title={article.title}
+          excerpt={article.excerpt}
+          section={article.type}
+          initialInternalArticleId={article.internalArticleId}
+        />
       </div>
     </article>
   );

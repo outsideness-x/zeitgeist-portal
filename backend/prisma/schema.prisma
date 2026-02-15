@@ -4,39 +4,58 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("BACKEND_DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
   READER
-  RESEARCHER
-  REVIEWER
-  EDITOR
+  AUTHOR
   ADMIN
 }
 
 enum SubmissionStatus {
   DRAFT
-  UPLOADING
-  UPLOADED
+  SUBMITTED
   IN_REVIEW
   NEEDS_CHANGES
-  ACCEPTED
+  RESUBMITTED
+  APPROVED
+  PUBLISHED
   REJECTED
 }
 
+enum ArticleSource {
+  LOCAL
+  GHOST
+}
+
+enum ArticleSection {
+  JOURNAL
+  RESEARCH
+  NOVA
+}
+
+enum ReactionType {
+  LIKE
+  INSIGHTFUL
+  CELEBRATE
+}
+
 model User {
-  id           String       @id @default(cuid())
-  name         String
-  email        String       @unique
-  passwordHash String
-  role         Role         @default(READER)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  sessions     Session[]
-  submissions  Submission[] @relation("submission_author")
-  auditLogs    AuditLog[]   @relation("audit_actor")
-  libraryItems LibraryItem[]
+  id              String         @id @default(cuid())
+  name            String
+  email           String         @unique
+  passwordHash    String
+  role            Role           @default(READER)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  sessions        Session[]
+  submissions     Submission[]   @relation("submission_author")
+  authoredArticles Article[]     @relation("article_author")
+  bookmarks       Bookmark[]
+  reactions       Reaction[]
+  reviewMessages  ReviewMessage[] @relation("review_admin")
+  auditLogs       AuditLog[]     @relation("audit_actor")
 }
 
 model Session {
@@ -53,19 +72,26 @@ model Session {
 }
 
 model Submission {
-  id           String           @id @default(cuid())
-  title        String
-  keywords     String[]
-  abstract     String
-  authorUserId String?
-  status       SubmissionStatus @default(DRAFT)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  author       User?            @relation("submission_author", fields: [authorUserId], references: [id], onDelete: SetNull)
-  files        SubmissionFile[]
+  id               String           @id @default(cuid())
+  authorUserId     String
+  title            String
+  keywords         String[]
+  abstract         String
+  requestedSection ArticleSection?
+  status           SubmissionStatus @default(DRAFT)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  lastSubmittedAt  DateTime?
+  publishedArticleId String?
+  author           User             @relation("submission_author", fields: [authorUserId], references: [id], onDelete: Cascade)
+  files            SubmissionFile[]
+  reviewMessages   ReviewMessage[]
+  publishedArticle Article?         @relation("published_submission_article", fields: [publishedArticleId], references: [id], onDelete: SetNull)
+  publication      SubmissionPublication?
 
   @@index([authorUserId])
   @@index([status])
+  @@index([lastSubmittedAt])
 }
 
 model SubmissionFile {
@@ -77,27 +103,116 @@ model SubmissionFile {
   mime         String
   originalName String
   uploadedAt   DateTime   @default(now())
+  version      Int
   submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
+  @@unique([submissionId, version])
   @@index([submissionId])
 }
 
-model LibraryItem {
-  id           String   @id @default(cuid())
-  title        String
-  author       String
-  description  String
-  storageKey   String   @unique
-  mime         String
-  sizeBytes    Int
-  publishedYear String
-  language     String
-  createdById  String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  createdBy    User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+model ReviewMessage {
+  id          String     @id @default(cuid())
+  submissionId String
+  adminUserId String
+  message     String
+  createdAt   DateTime   @default(now())
+  submission  Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  admin       User       @relation("review_admin", fields: [adminUserId], references: [id], onDelete: Cascade)
 
-  @@index([createdById])
+  @@index([submissionId])
+  @@index([adminUserId])
+}
+
+model Article {
+  id             String            @id @default(cuid())
+  source         ArticleSource
+  externalId     String?
+  slug           String
+  canonicalPath  String
+  title          String
+  excerpt        String
+  htmlContent    String?
+  featureImage   String?
+  section        ArticleSection
+  authorUserId   String?
+  publishedAt    DateTime
+  pdfStorageKey  String?
+  canonicalUrl   String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  authorUser     User?             @relation("article_author", fields: [authorUserId], references: [id], onDelete: SetNull)
+  bookmarks      Bookmark[]
+  reactions      Reaction[]
+  dailyStats     ArticleDailyStats[]
+  dailyVisitors  ArticleDailyVisitor[]
+  submissions    Submission[]      @relation("published_submission_article")
+  publications   SubmissionPublication[]
+
+  @@unique([source, slug])
+  @@unique([source, externalId])
+  @@index([authorUserId])
+  @@index([publishedAt])
+}
+
+model SubmissionPublication {
+  id           String     @id @default(cuid())
+  submissionId String     @unique
+  articleId    String
+  createdAt    DateTime   @default(now())
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  article      Article    @relation(fields: [articleId], references: [id], onDelete: Restrict)
+
+  @@index([articleId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  articleId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@index([articleId])
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  userId    String
+  articleId String
+  type      ReactionType
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   Article      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@index([articleId])
+}
+
+model ArticleDailyStats {
+  id             String   @id @default(cuid())
+  articleId      String
+  date           DateTime
+  views          Int      @default(0)
+  uniqueVisitors Int      @default(0)
+  article        Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, date])
+  @@index([date])
+}
+
+model ArticleDailyVisitor {
+  id        String   @id @default(cuid())
+  articleId String
+  date      DateTime
+  visitorId String
+  createdAt DateTime @default(now())
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, date, visitorId])
+  @@index([date])
 }
 
 model AuditLog {

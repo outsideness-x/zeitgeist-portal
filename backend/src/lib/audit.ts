@@ -1,7 +1,9 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 
+type AuditWriter = PrismaClient | Prisma.TransactionClient;
+
 export const writeAuditLog = async (args: {
-  prisma: PrismaClient;
+  prisma: AuditWriter;
   actorUserId?: string;
   action: string;
   entityType: string;

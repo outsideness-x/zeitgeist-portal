@@ -1,64 +1,116 @@
-# architecture plan
+# architecture
 
-this repository is being upgraded into a production-ready publishing and research portal while keeping local development independent from ghost.
+this document defines the local-first publishing architecture for zeitgeist and the production ghost integration path.
 
 ## goals
 
-- keep localhost fully functional with no ghost instance
-- add a ghost integration path behind a provider adapter
-- add a standalone app backend with auth, rbac, submissions, signed uploads, and signed downloads
-- keep current next.js app router pages and visual style
+- localhost must run end-to-end without ghost
+- ghost integrations must exist behind adapters and stay disabled unless env enables them
+- all analytics and engagement data must live in postgres and use internal article ids
+- editorial workflow must be auditable with strict state transitions and role-based access control
 
-## implementation phases
+## service layout
 
-### content provider layer
+- next.js app router in repository root
+- fastify backend in `backend/`
+- postgres for auth, editorial workflow, content registry, and analytics
+- minio for manuscript and published pdf objects
 
-- create a content provider interface in `services/content/types.ts`
-- add `local` and `ghost` provider implementations in `services/content/providers`
-- route provider selection through env `CONTENT_PROVIDER`
-- default to `local` to keep localhost stable
-- ensure ghost provider throws clear setup errors only when explicitly enabled
-- expose a single facade at `services/content/index.ts`
+## internal article registry
 
-### backend service
+`article` is the canonical content identity table.
 
-- add `backend/` fastify app with typescript
-- validate env with zod at process startup
-- add prisma schema for users, sessions, submissions, files, audit logs, library items
-- use secure http-only cookie sessions with csrf token checks for mutating routes
-- hash passwords with argon2
-- enforce rbac on protected routes
-- add rate limits for auth and upload init endpoints
-- add s3-compatible signing and object checks via minio-compatible aws sdk v3
+- every article has an internal id used by bookmarks, reactions, and analytics
+- source is `local` or `ghost`
+- local publishes store local html and pdf references
+- ghost publishes/fetches map external ghost ids and slugs into internal rows
+- lazy upsert is used when ghost content is viewed so analytics can always reference an internal article id
 
-### frontend integration
+## adapters
 
-- replace imports from legacy ghost service with content provider facade
-- replace modal mock auth with backend calls
-- add session bootstrap via `/api/auth/me`
-- replace upload simulation with real submission + presign + direct upload + finalize flow
-- add lightweight dashboard pages for review flows
-- keep current visual design and routing patterns
+### content provider adapter
 
-### local infrastructure
+front-end content reads are routed through `services/content`.
 
-- add `docker-compose.yml` with postgresql and minio only
-- add root and backend `.env.example` files
-- document local run path in readme
+- `local` provider: static seed content + backend db overlay for newly published local submissions
+- `ghost` provider: ghost content api integration, disabled unless env is set
+- provider selection is controlled by `CONTENT_PROVIDER` and defaults to `local`
 
-### testing and verification
+### publisher adapter
 
-- backend integration tests with supertest:
-  - register, login, me
-  - submission create
-  - upload init
-  - upload complete validation path
-- run lint and build for next app
-- run backend tests and type checks
+admin approve uses a backend publisher abstraction.
 
-## key constraints respected
+- `LocalPublisher`: writes published article row in postgres and exposes it via local content overlay
+- `GhostPublisher`: publishes to ghost admin api, stores ghost mapping in article registry
+- publisher selection is controlled by `PUBLISH_PROVIDER` and defaults to `local`
 
-- no ghost dependency in local run path
-- no secret values committed
-- strict typescript kept enabled
-- provider switch avoids future ui refactor for ghost rollout
+## auth and security
+
+- cookie-backed server sessions with opaque token in `zg_session`
+- csrf double-submit token in `zg_csrf` and custom header check for mutating endpoints
+- argon2id password hashing
+- generic auth errors to avoid account enumeration leakage
+- route-level rbac checks for admin and author functionality
+- rate limiting on auth, analytics, and admin mutation routes
+
+## submissions workflow model
+
+submission state machine:
+
+- `draft`
+- `submitted`
+- `in_review`
+- `needs_changes`
+- `resubmitted`
+- `approved`
+- `published`
+- `rejected` terminal
+
+workflow rules:
+
+- only valid transitions are accepted
+- admin actions and publish operations are logged in `audit_log`
+- review notes are stored in `review_message`
+- approving a submission triggers publisher adapter
+- first successful publish promotes `reader` to `author`
+
+## analytics model
+
+analytics is privacy-friendly and article-centric.
+
+- client sends `POST /api/analytics/view` with internal article id
+- backend manages random `zg_vid` visitor cookie
+- daily aggregates in `article_daily_stats` (`views`, `unique_visitors`)
+- unique dedup key in `article_daily_visitor` (`article_id`, `date`, `visitor_id`)
+- no raw ip storage
+- upsert and transactional increments keep counters correct under concurrent writes
+
+## engagement model
+
+- bookmarks: unique `(user_id, article_id)`
+- reactions: one reaction per user per article with updateable type
+- author dashboard reads per-article bookmark counts, reaction breakdowns, and daily view series
+
+## local runtime behavior
+
+- `CONTENT_PROVIDER=local` by default
+- `PUBLISH_PROVIDER=local` by default
+- ghost env vars are optional placeholders in local setup
+- if ghost provider/publisher is enabled without required env, backend/provider fails with explicit setup error
+
+## frontend cabinets
+
+- `/account`: bookmarks, submission statuses, review messages, submit entrypoint, and author analytics section
+- `/admin`: queue filtering, submission details, request changes, reject, approve + publish
+- article page: ensure internal mapping, send view event, support bookmark and reaction actions
+
+## testing scope
+
+minimum backend integration coverage:
+
+- register/login/me
+- bookmarks toggle/list
+- reaction set/update/clear
+- analytics views with unique dedup per visitor/day
+- submission create + upload init/complete
+- admin approve triggers publish adapter and role promotion
