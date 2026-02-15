@@ -35,6 +35,7 @@ process.env.UPLOAD_MAX_BYTES = process.env.UPLOAD_MAX_BYTES ?? '26214400';
 process.env.RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX ?? '1000';
 process.env.RATE_LIMIT_WINDOW_SECONDS = process.env.RATE_LIMIT_WINDOW_SECONDS ?? '60';
 process.env.ANALYTICS_COOKIE_MAX_AGE_DAYS = process.env.ANALYTICS_COOKIE_MAX_AGE_DAYS ?? '365';
+process.env.MAX_APPLAUSE_PER_USER_PER_ARTICLE = process.env.MAX_APPLAUSE_PER_USER_PER_ARTICLE ?? '50';
 process.env.CONTENT_PROVIDER = process.env.CONTENT_PROVIDER ?? 'local';
 process.env.PUBLISH_PROVIDER = process.env.PUBLISH_PROVIDER ?? 'local';
 
@@ -80,6 +81,19 @@ describe.skipIf(!canRun)('backend integration', () => {
       csrfToken: registerResponse.body.csrfToken as string,
       cookies: registerResponse.headers['set-cookie'] as string[],
     };
+  };
+
+  const ensureArticle = async (slugPrefix: string) => {
+    const ensureResponse = await request.post('/api/articles/ensure').send({
+      source: 'local',
+      slug: `${slugPrefix}-${randomUUID()}`,
+      title: `${slugPrefix} article`,
+      excerpt: `${slugPrefix} excerpt`,
+      section: 'journal',
+    });
+
+    expect(ensureResponse.status).toBe(200);
+    return ensureResponse.body.articleId as string;
   };
 
   it('register login and me flow works', async () => {
@@ -212,6 +226,144 @@ describe.skipIf(!canRun)('backend integration', () => {
 
     expect(myReactionAfterClear.status).toBe(200);
     expect(myReactionAfterClear.body.reaction).toBeNull();
+  });
+
+  it('like set and unset is idempotent with aggregate counters', async () => {
+    const identity = await registerUser(`like-${randomUUID()}@example.com`);
+    const articleId = await ensureArticle('like');
+
+    const firstLikeResponse = await request
+      .post(`/api/articles/${articleId}/like`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({});
+
+    expect(firstLikeResponse.status).toBe(200);
+    expect(firstLikeResponse.body.likeCount).toBe(1);
+    expect(firstLikeResponse.body.viewer.liked).toBe(true);
+
+    const secondLikeResponse = await request
+      .post(`/api/articles/${articleId}/like`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({});
+
+    expect(secondLikeResponse.status).toBe(200);
+    expect(secondLikeResponse.body.likeCount).toBe(1);
+    expect(secondLikeResponse.body.viewer.liked).toBe(true);
+
+    const firstUnlikeResponse = await request
+      .delete(`/api/articles/${articleId}/like`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken);
+
+    expect(firstUnlikeResponse.status).toBe(200);
+    expect(firstUnlikeResponse.body.likeCount).toBe(0);
+    expect(firstUnlikeResponse.body.viewer.liked).toBe(false);
+
+    const secondUnlikeResponse = await request
+      .delete(`/api/articles/${articleId}/like`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken);
+
+    expect(secondUnlikeResponse.status).toBe(200);
+    expect(secondUnlikeResponse.body.likeCount).toBe(0);
+    expect(secondUnlikeResponse.body.viewer.liked).toBe(false);
+  });
+
+  it('applause increments and respects per-user cap', async () => {
+    const identity = await registerUser(`applause-${randomUUID()}@example.com`);
+    const articleId = await ensureArticle('applause');
+
+    const firstApplauseResponse = await request
+      .post(`/api/articles/${articleId}/applause`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({ delta: 5 });
+
+    expect(firstApplauseResponse.status).toBe(200);
+    expect(firstApplauseResponse.body.appliedDelta).toBe(5);
+    expect(firstApplauseResponse.body.applauseCount).toBe(5);
+    expect(firstApplauseResponse.body.viewer.applauseCountByMe).toBe(5);
+
+    const capHitResponse = await request
+      .post(`/api/articles/${articleId}/applause`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({ delta: 100 });
+
+    expect(capHitResponse.status).toBe(200);
+    expect(capHitResponse.body.appliedDelta).toBe(45);
+    expect(capHitResponse.body.applauseCount).toBe(50);
+    expect(capHitResponse.body.viewer.applauseCountByMe).toBe(50);
+
+    const overCapResponse = await request
+      .post(`/api/articles/${articleId}/applause`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({ delta: 1 });
+
+    expect(overCapResponse.status).toBe(200);
+    expect(overCapResponse.body.appliedDelta).toBe(0);
+    expect(overCapResponse.body.applauseCount).toBe(50);
+    expect(overCapResponse.body.viewer.applauseCountByMe).toBe(50);
+
+    const reactionSummaryResponse = await request
+      .get(`/api/articles/${articleId}/reactions`)
+      .set('Cookie', identity.cookies);
+
+    expect(reactionSummaryResponse.status).toBe(200);
+    expect(reactionSummaryResponse.body.applauseCount).toBe(50);
+    expect(reactionSummaryResponse.body.viewer.applauseCountByMe).toBe(50);
+  });
+
+  it('concurrent applause requests never exceed cap and keep aggregate consistent', async () => {
+    const identity = await registerUser(`applause-concurrent-${randomUUID()}@example.com`);
+    const articleId = await ensureArticle('applause-concurrent');
+
+    const applauseRequests = Array.from({ length: 20 }, () => {
+      return request
+        .post(`/api/articles/${articleId}/applause`)
+        .set('Cookie', identity.cookies)
+        .set('x-csrf-token', identity.csrfToken)
+        .send({ delta: 5 });
+    });
+
+    const responses = await Promise.all(applauseRequests);
+    responses.forEach((response) => {
+      expect(response.status).toBe(200);
+    });
+
+    const [summaryResponse, applauseRow, aggregateRow] = await Promise.all([
+      request
+        .get(`/api/articles/${articleId}/reactions`)
+        .set('Cookie', identity.cookies),
+      app.prisma.articleApplause.findUnique({
+        where: {
+          articleId_userId: {
+            articleId,
+            userId: identity.user.id,
+          },
+        },
+        select: {
+          count: true,
+        },
+      }),
+      app.prisma.articleReactionAggregate.findUnique({
+        where: {
+          articleId,
+        },
+        select: {
+          applauseCount: true,
+        },
+      }),
+    ]);
+
+    expect(summaryResponse.status).toBe(200);
+    expect(summaryResponse.body.applauseCount).toBe(50);
+    expect(summaryResponse.body.viewer.applauseCountByMe).toBe(50);
+    expect(applauseRow?.count).toBe(50);
+    expect(aggregateRow?.applauseCount).toBe(50);
   });
 
   it('analytics view increments and unique visitor dedup works for same visitor/day', async () => {

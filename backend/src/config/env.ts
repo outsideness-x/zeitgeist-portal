@@ -34,6 +34,7 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
   RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
   ANALYTICS_COOKIE_MAX_AGE_DAYS: z.coerce.number().int().positive().default(365),
+  MAX_APPLAUSE_PER_USER_PER_ARTICLE: z.coerce.number().int().positive().default(50),
   CONTENT_PROVIDER: z.enum(['local', 'ghost']).default('local'),
   PUBLISH_PROVIDER: z.enum(['local', 'ghost']).default('local'),
   GHOST_CONTENT_API_URL: optionalUrl,

@@ -51,6 +51,7 @@ jobs:
       RATE_LIMIT_MAX: 1000
       RATE_LIMIT_WINDOW_SECONDS: 60
       ANALYTICS_COOKIE_MAX_AGE_DAYS: 365
+      MAX_APPLAUSE_PER_USER_PER_ARTICLE: 50
 
     steps:
       - name: checkout

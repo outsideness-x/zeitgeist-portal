@@ -54,6 +54,8 @@ model User {
   authoredArticles Article[]     @relation("article_author")
   bookmarks       Bookmark[]
   reactions       Reaction[]
+  articleLikes    ArticleLike[]
+  articleApplause ArticleApplause[]
   reviewMessages  ReviewMessage[] @relation("review_admin")
   auditLogs       AuditLog[]     @relation("audit_actor")
 }
@@ -143,6 +145,9 @@ model Article {
   authorUser     User?             @relation("article_author", fields: [authorUserId], references: [id], onDelete: SetNull)
   bookmarks      Bookmark[]
   reactions      Reaction[]
+  articleLikes   ArticleLike[]
+  articleApplause ArticleApplause[]
+  reactionAggregate ArticleReactionAggregate?
   dailyStats     ArticleDailyStats[]
   dailyVisitors  ArticleDailyVisitor[]
   submissions    Submission[]      @relation("published_submission_article")
@@ -152,6 +157,42 @@ model Article {
   @@unique([source, externalId])
   @@index([authorUserId])
   @@index([publishedAt])
+}
+
+model ArticleLike {
+  id        String   @id @default(cuid())
+  articleId String
+  userId    String
+  createdAt DateTime @default(now())
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, userId])
+  @@index([articleId])
+}
+
+model ArticleApplause {
+  id        String   @id @default(cuid())
+  articleId String
+  userId    String
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, userId])
+  @@index([articleId])
+}
+
+model ArticleReactionAggregate {
+  id           String   @id @default(cuid())
+  articleId    String   @unique
+  likeCount    Int      @default(0)
+  applauseCount Int     @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  article      Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
 }
 
 model SubmissionPublication {

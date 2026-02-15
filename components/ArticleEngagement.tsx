@@ -4,8 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { backendRequest } from '@/services/backend/client';
 
-type ReactionType = 'like' | 'insightful' | 'celebrate';
-
 type EnsureResponse = {
   articleId: string;
 };
@@ -15,6 +13,21 @@ type EngagementResponse = {
   reactionCounts: Record<string, number>;
   totalViews: number;
   totalUniqueVisitors: number;
+};
+
+type ReactionsResponse = {
+  likeCount: number;
+  applauseCount: number;
+  cap: number;
+  viewer: {
+    liked: boolean;
+    applauseCountByMe: number;
+  };
+};
+
+type ApplauseResponse = ReactionsResponse & {
+  requestedDelta: number;
+  appliedDelta: number;
 };
 
 type Props = {
@@ -27,21 +40,18 @@ type Props = {
   initialInternalArticleId?: string;
 };
 
-const reactionLabels: Record<ReactionType, string> = {
-  like: 'полезно',
-  insightful: 'глубоко',
-  celebrate: 'сильно',
-};
-
 export const ArticleEngagement = (props: Props) => {
   const { user, csrfToken } = useAuth();
   const [internalArticleId, setInternalArticleId] = useState<string | null>(props.initialInternalArticleId ?? null);
   const [engagement, setEngagement] = useState<EngagementResponse | null>(null);
+  const [reactions, setReactions] = useState<ReactionsResponse | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
-  const [myReaction, setMyReaction] = useState<ReactionType | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const viewSentRef = useRef<string | null>(null);
+  const applauseQueueRef = useRef(0);
+  const applauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const applauseRequestInFlightRef = useRef(false);
 
   const ensureArticle = async () => {
     if (internalArticleId) {
@@ -73,24 +83,81 @@ export const ArticleEngagement = (props: Props) => {
     setEngagement(summary);
   };
 
-  const loadMyState = async (articleId: string) => {
+  const loadReactions = async (articleId: string) => {
+    const summary = await backendRequest<ReactionsResponse>({
+      path: `/api/articles/${articleId}/reactions`,
+    });
+    setReactions(summary);
+  };
+
+  const loadBookmarkState = async (articleId: string) => {
     if (!user) {
       setBookmarked(false);
-      setMyReaction(null);
       return;
     }
 
-    const [bookmarkResponse, reactionResponse] = await Promise.all([
-      backendRequest<{ bookmarked: boolean }>({
-        path: `/api/articles/${articleId}/bookmark/me`,
-      }),
-      backendRequest<{ reaction: ReactionType | null }>({
-        path: `/api/articles/${articleId}/reaction/me`,
-      }),
-    ]);
+    const bookmarkResponse = await backendRequest<{ bookmarked: boolean }>({
+      path: `/api/articles/${articleId}/bookmark/me`,
+    });
 
     setBookmarked(bookmarkResponse.bookmarked);
-    setMyReaction(reactionResponse.reaction);
+  };
+
+  const flushApplauseQueue = async () => {
+    if (!internalArticleId || !user || !csrfToken) {
+      applauseQueueRef.current = 0;
+      return;
+    }
+
+    if (applauseRequestInFlightRef.current || applauseQueueRef.current <= 0) {
+      return;
+    }
+
+    const queuedDelta = applauseQueueRef.current;
+    applauseQueueRef.current = 0;
+    applauseRequestInFlightRef.current = true;
+
+    try {
+      const response = await backendRequest<ApplauseResponse>({
+        path: `/api/articles/${internalArticleId}/applause`,
+        method: 'POST',
+        csrfToken,
+        body: {
+          delta: queuedDelta,
+        },
+      });
+
+      setReactions({
+        likeCount: response.likeCount,
+        applauseCount: response.applauseCount,
+        cap: response.cap,
+        viewer: response.viewer,
+      });
+    } catch (error) {
+      try {
+        await loadReactions(internalArticleId);
+      } catch {
+        // this keeps existing optimistic state until the next successful sync
+      }
+      setErrorMessage(error instanceof Error ? error.message : 'не удалось сохранить аплодисменты');
+    } finally {
+      applauseRequestInFlightRef.current = false;
+      if (applauseQueueRef.current > 0) {
+        applauseTimerRef.current = setTimeout(() => {
+          void flushApplauseQueue();
+        }, 100);
+      }
+    }
+  };
+
+  const scheduleApplauseFlush = () => {
+    if (applauseTimerRef.current) {
+      clearTimeout(applauseTimerRef.current);
+    }
+
+    applauseTimerRef.current = setTimeout(() => {
+      void flushApplauseQueue();
+    }, 400);
   };
 
   useEffect(() => {
@@ -98,8 +165,11 @@ export const ArticleEngagement = (props: Props) => {
     const run = async () => {
       try {
         const articleId = await ensureArticle();
-        await loadEngagement(articleId);
-        await loadMyState(articleId);
+        await Promise.all([
+          loadEngagement(articleId),
+          loadReactions(articleId),
+          loadBookmarkState(articleId),
+        ]);
 
         // this sends one view per page load and relies on backend visitor dedup for unique visitor counts
         if (viewSentRef.current !== articleId) {
@@ -127,9 +197,20 @@ export const ArticleEngagement = (props: Props) => {
     if (!internalArticleId) {
       return;
     }
-    void loadMyState(internalArticleId);
+    void Promise.all([
+      loadBookmarkState(internalArticleId),
+      loadReactions(internalArticleId),
+    ]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, internalArticleId]);
+
+  useEffect(() => {
+    return () => {
+      if (applauseTimerRef.current) {
+        clearTimeout(applauseTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleBookmarkToggle = async () => {
     if (!user || !csrfToken) {
@@ -167,41 +248,70 @@ export const ArticleEngagement = (props: Props) => {
     }
   };
 
-  const handleReactionSet = async (reaction: ReactionType) => {
+  const handleLikeToggle = async () => {
     if (!user || !csrfToken) {
       setErrorMessage('войдите, чтобы оставить реакцию');
       return;
     }
-    if (!internalArticleId) {
+    if (!internalArticleId || !reactions) {
       return;
     }
+
+    const previousState = reactions;
+    const willLike = !previousState.viewer.liked;
+
+    setReactions({
+      ...previousState,
+      likeCount: Math.max(0, previousState.likeCount + (willLike ? 1 : -1)),
+      viewer: {
+        ...previousState.viewer,
+        liked: willLike,
+      },
+    });
 
     setBusy(true);
     setErrorMessage('');
     try {
-      if (myReaction === reaction) {
-        await backendRequest({
-          path: `/api/articles/${internalArticleId}/reaction`,
-          method: 'DELETE',
-          csrfToken,
-        });
-        setMyReaction(null);
-      } else {
-        const response = await backendRequest<{ reaction: ReactionType }>({
-          path: `/api/articles/${internalArticleId}/reaction`,
-          method: 'POST',
-          csrfToken,
-          body: { type: reaction },
-        });
-        setMyReaction(response.reaction);
-      }
-
-      await loadEngagement(internalArticleId);
+      const response = await backendRequest<ReactionsResponse>({
+        path: `/api/articles/${internalArticleId}/like`,
+        method: willLike ? 'POST' : 'DELETE',
+        csrfToken,
+      });
+      setReactions(response);
     } catch (error) {
+      setReactions(previousState);
       setErrorMessage(error instanceof Error ? error.message : 'не удалось сохранить реакцию');
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleApplause = () => {
+    if (!user || !csrfToken) {
+      setErrorMessage('войдите, чтобы оставить реакцию');
+      return;
+    }
+    if (!internalArticleId || !reactions) {
+      return;
+    }
+
+    const remaining = Math.max(0, reactions.cap - reactions.viewer.applauseCountByMe);
+    if (remaining <= 0) {
+      return;
+    }
+
+    applauseQueueRef.current += 1;
+    setErrorMessage('');
+    setReactions({
+      ...reactions,
+      applauseCount: reactions.applauseCount + 1,
+      viewer: {
+        ...reactions.viewer,
+        applauseCountByMe: reactions.viewer.applauseCountByMe + 1,
+      },
+    });
+
+    scheduleApplauseFlush();
   };
 
   const handlePdfDownload = async () => {
@@ -227,13 +337,12 @@ export const ArticleEngagement = (props: Props) => {
     }
   };
 
-  const reactionTotals = useMemo(() => {
-    return {
-      like: engagement?.reactionCounts.like ?? 0,
-      insightful: engagement?.reactionCounts.insightful ?? 0,
-      celebrate: engagement?.reactionCounts.celebrate ?? 0,
-    };
-  }, [engagement]);
+  const applauseAtCap = useMemo(() => {
+    if (!reactions) {
+      return false;
+    }
+    return reactions.viewer.applauseCountByMe >= reactions.cap;
+  }, [reactions]);
 
   return (
     <div className="mt-10 border border-sepia bg-sepia/20 px-4 py-5 sm:px-6">
@@ -253,17 +362,23 @@ export const ArticleEngagement = (props: Props) => {
           {bookmarked ? 'в закладках' : 'в закладки'}
         </button>
 
-        {(Object.keys(reactionLabels) as ReactionType[]).map((reaction) => (
-          <button
-            key={reaction}
-            type="button"
-            onClick={() => void handleReactionSet(reaction)}
-            disabled={busy || !internalArticleId}
-            className={`border px-3 py-2 text-xs uppercase tracking-wider ${myReaction === reaction ? 'border-accent bg-accent text-white' : 'border-sepia hover:border-accent'} disabled:opacity-50`}
-          >
-            {reactionLabels[reaction]} ({reactionTotals[reaction]})
-          </button>
-        ))}
+        <button
+          type="button"
+          onClick={() => void handleLikeToggle()}
+          disabled={busy || !internalArticleId || !reactions}
+          className={`border px-3 py-2 text-xs uppercase tracking-wider ${reactions?.viewer.liked ? 'border-accent bg-accent text-white' : 'border-sepia hover:border-accent'} disabled:opacity-50`}
+        >
+          нравится ({reactions?.likeCount ?? 0})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleApplause()}
+          disabled={busy || !internalArticleId || !reactions || applauseAtCap}
+          className="border border-sepia px-3 py-2 text-xs uppercase tracking-wider hover:border-accent disabled:opacity-50"
+        >
+          аплодисменты ({reactions?.applauseCount ?? 0}) · мои {reactions?.viewer.applauseCountByMe ?? 0}
+        </button>
 
         {props.section === 'research' && (
           <button
