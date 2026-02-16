@@ -81,7 +81,15 @@ export const buildServer = () => {
   app.register(registerWebhookRoutes);
 
   app.setErrorHandler((error, request, reply) => {
-    const statusCode = error.statusCode && error.statusCode >= 400 ? error.statusCode : 500;
+    const normalizedError = (
+      typeof error === 'object' && error !== null
+        ? error
+        : {}
+    ) as { statusCode?: number; message?: string };
+
+    const statusCode = normalizedError.statusCode && normalizedError.statusCode >= 400
+      ? normalizedError.statusCode
+      : 500;
 
     if (statusCode >= 500) {
       request.log.error({ err: error }, 'request failed');
@@ -94,7 +102,7 @@ export const buildServer = () => {
 
     reply.code(statusCode).send({
       error: 'request_error',
-      message: error.message,
+      message: normalizedError.message ?? 'request failed',
     });
   });
 
