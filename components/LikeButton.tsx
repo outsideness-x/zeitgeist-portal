@@ -40,16 +40,28 @@ export const LikeButton = ({ article, baseCount = 0 }: LikeButtonProps): JSX.Ele
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const articleSource = article.source === 'local' ? 'local' : 'ghost';
+  const normalizedExternalId = article.externalId?.trim() ? article.externalId : undefined;
+  const normalizedSlug = article.slug?.trim() || article.id;
+  const normalizedCanonicalPath = article.canonicalPath?.trim() || `/article/${normalizedSlug}`;
+
+  const promptAuthModal = () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('zg:open-auth-modal'));
+  };
+
   const ensurePayload = useMemo(() => ({
-    source: article.source === 'local' ? 'local' : 'ghost',
-    externalId: article.externalId?.trim() ? article.externalId : undefined,
-    slug: article.slug?.trim() || article.id,
+    source: articleSource,
+    externalId: normalizedExternalId,
+    slug: normalizedSlug,
     title: article.title,
     excerpt: article.excerpt,
     section: article.type,
-    canonicalPath: article.canonicalPath?.trim() || `/article/${article.slug?.trim() || article.id}`,
+    canonicalPath: normalizedCanonicalPath,
     featureImage: article.feature_image,
-  }), [article]);
+  }), [article.excerpt, article.feature_image, article.title, article.type, articleSource, normalizedCanonicalPath, normalizedExternalId, normalizedSlug]);
 
   useEffect(() => {
     let active = true;
@@ -79,7 +91,7 @@ export const LikeButton = ({ article, baseCount = 0 }: LikeButtonProps): JSX.Ele
           return;
         }
 
-        setLikeCount(summary.likeCount);
+        setLikeCount(Math.max(0, summary.likeCount));
         setLiked(summary.viewer.liked);
       } catch (error) {
         if (!active) {
@@ -111,6 +123,7 @@ export const LikeButton = ({ article, baseCount = 0 }: LikeButtonProps): JSX.Ele
 
     if (!user || !csrfToken) {
       setErrorMessage('войдите, чтобы ставить лайки');
+      promptAuthModal();
       return;
     }
 
@@ -132,7 +145,7 @@ export const LikeButton = ({ article, baseCount = 0 }: LikeButtonProps): JSX.Ele
       });
 
       setLiked(summary.viewer.liked);
-      setLikeCount(summary.likeCount);
+      setLikeCount(Math.max(0, summary.likeCount));
     } catch (error) {
       setLiked(previousLiked);
       setLikeCount(previousLikeCount);
