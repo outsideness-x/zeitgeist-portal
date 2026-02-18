@@ -69,7 +69,20 @@ export default async function ArticlePage({ params }: Props) {
             <div className="font-serif text-lg text-gray-500 italic">
               Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span> &mdash; {formattedDate} &mdash; {readingTime}
             </div>
-            <LikeButton articleId={article.id} baseCount={article.baseLikeCount ?? 0} />
+            <LikeButton
+              article={{
+                id: article.id,
+                source: article.source,
+                externalId: article.externalId,
+                slug: article.slug,
+                canonicalPath: article.canonicalPath,
+                title: article.title,
+                excerpt: article.excerpt,
+                feature_image: article.feature_image,
+                type: article.type,
+              }}
+              baseCount={article.baseLikeCount ?? 0}
+            />
           </div>
         </div>
       </div>
