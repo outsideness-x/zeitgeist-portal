@@ -1,6 +1,7 @@
 import { fetchArticles } from '@/services/content';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { EmptyState } from '@/components/EmptyState';
 
 export const metadata: Metadata = {
@@ -47,12 +48,33 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {articles.items.length > 0 ? (
             articles.items.map(article => (
-              <div key={article.id} className="group relative rounded-lg bg-paper dark:bg-card-bg border-2 border-ink dark:border-gray-700 hover:border-accent dark:hover:border-green-500 transition-colors duration-300 p-6">
+              <article key={article.id} className="group relative rounded-lg bg-paper dark:bg-card-bg border-2 border-ink dark:border-gray-700 hover:border-accent dark:hover:border-green-500 transition-colors duration-300 p-6">
                 <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-ink dark:border-gray-600 group-hover:border-accent dark:group-hover:border-green-500 transition-colors"></div>
                 <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-ink dark:border-gray-600 group-hover:border-accent dark:group-hover:border-green-500 transition-colors"></div>
 
-                <div className="mb-4 flex justify-between items-start">
-                  <span className="text-xs font-bold bg-ink text-paper dark:bg-gray-800 dark:text-gray-200 px-2 py-1">
+                <Link href={`/article/${article.id}`} className="mb-5 block">
+                  <div className="relative aspect-[16/10] overflow-hidden rounded border border-ink dark:border-gray-700 bg-sepia">
+                    {article.feature_image ? (
+                      <Image
+                        src={article.feature_image}
+                        alt={article.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center px-4 text-center text-[11px] uppercase tracking-widest text-gray-500">
+                        no preview image
+                      </div>
+                    )}
+                  </div>
+                </Link>
+
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <span
+                    className="inline-block max-w-[72%] truncate text-xs font-bold bg-ink text-paper dark:bg-gray-800 dark:text-gray-200 px-2 py-1"
+                    title={`ID_ФАЙЛА: ${article.id.toUpperCase()}`}
+                  >
                     ID_ФАЙЛА: {article.id.toUpperCase()}
                   </span>
                   <span className="text-xs text-gray-500 font-mono">
@@ -60,24 +82,24 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
                   </span>
                 </div>
 
-                <h3 className="text-2xl font-bold leading-tight mb-4 group-hover:text-accent dark:group-hover:text-green-400 transition-colors">
-                  <Link href={`/article/${article.id}`} className="before:absolute before:inset-0">
+                <h3 className="text-2xl font-bold leading-tight mb-4 group-hover:text-accent dark:group-hover:text-green-400 transition-colors break-words line-clamp-4">
+                  <Link href={`/article/${article.id}`}>
                     {article.title}
                   </Link>
                 </h3>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4 border-l-2 border-gray-300 dark:border-gray-700 pl-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4 border-l-2 border-gray-300 dark:border-gray-700 pl-4 break-words">
                   {article.excerpt}
                 </p>
 
-                <div className="flex gap-2 mt-4">
+                <div className="mt-4 flex flex-wrap gap-2">
                   {article.tags.map(tag => (
                     <span key={tag} className="text-[10px] uppercase border border-gray-400 dark:border-gray-600 px-1 text-gray-500 dark:text-gray-400">
                       #{tag}
                     </span>
                   ))}
                 </div>
-              </div>
+              </article>
             ))
           ) : (
             <div className="md:col-span-2 lg:col-span-3">
