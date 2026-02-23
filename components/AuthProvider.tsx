@@ -1,13 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-
-type AuthUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: 'READER' | 'AUTHOR' | 'ADMIN';
-};
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
+import { authStateReducer, initialAuthState, type AuthUser } from '@/services/auth/state';
+import { backendRequest, getBackendBaseUrl, logBackendDebugOnce } from '@/services/backend/client';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -20,140 +15,123 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const backendNotConfiguredMessage = 'backend url is not configured';
 
-const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || '';
-
-const parseErrorMessage = async (response: Response) => {
-  const fallback = `request failed with status ${response.status}`;
-  try {
-    const payload = (await response.json()) as { message?: string };
-    return payload.message ?? fallback;
-  } catch {
-    return fallback;
+const isAuthRequiredError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
   }
+
+  const message = error.message.toLowerCase();
+  return message.includes('authentication is required') || message.includes('unauthorized');
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [csrfToken, setCsrfToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [state, dispatch] = useReducer(authStateReducer, initialAuthState);
+  const didRefreshOnMountRef = useRef(false);
 
   const refreshMe = useCallback(async () => {
-    if (!backendBaseUrl) {
-      setUser(null);
-      setCsrfToken(null);
-      setLoading(false);
+    if (!getBackendBaseUrl()) {
+      dispatch({ type: 'clear-session' });
       return;
     }
 
     try {
-      const response = await fetch(`${backendBaseUrl}/api/auth/me`, {
-        method: 'GET',
-        credentials: 'include',
+      const payload = await backendRequest<{ user: AuthUser; csrfToken: string }>({
+        path: '/api/auth/me',
       });
-
-      if (!response.ok) {
-        setUser(null);
-        setCsrfToken(null);
-        return;
+      dispatch({
+        type: 'set-session',
+        user: payload.user,
+        csrfToken: payload.csrfToken,
+      });
+    } catch (error) {
+      if (!isAuthRequiredError(error)) {
+        logBackendDebugOnce('auth.refresh failed', {
+          message: error instanceof Error ? error.message : 'unknown error',
+        });
       }
-
-      const payload = (await response.json()) as { user: AuthUser; csrfToken: string };
-      setUser(payload.user);
-      setCsrfToken(payload.csrfToken);
-    } catch {
-      setUser(null);
-      setCsrfToken(null);
-    } finally {
-      setLoading(false);
+      dispatch({ type: 'clear-session' });
     }
   }, []);
 
   useEffect(() => {
+    if (didRefreshOnMountRef.current) {
+      return;
+    }
+
+    // this guard keeps strict mode from issuing duplicate bootstrap calls
+    didRefreshOnMountRef.current = true;
     void refreshMe();
   }, [refreshMe]);
 
   const login = useCallback(async (email: string, password: string) => {
-    if (!backendBaseUrl) {
-      throw new Error('backend url is not configured');
+    if (!getBackendBaseUrl()) {
+      throw new Error(backendNotConfiguredMessage);
     }
 
-    const response = await fetch(`${backendBaseUrl}/api/auth/login`, {
+    const payload = await backendRequest<{ user: AuthUser; csrfToken: string }>({
+      path: '/api/auth/login',
       method: 'POST',
-      credentials: 'include',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
+      body: { email, password },
     });
 
-    if (!response.ok) {
-      throw new Error(await parseErrorMessage(response));
-    }
-
-    const payload = (await response.json()) as { user: AuthUser; csrfToken: string };
-    setUser(payload.user);
-    setCsrfToken(payload.csrfToken);
+    dispatch({
+      type: 'set-session',
+      user: payload.user,
+      csrfToken: payload.csrfToken,
+    });
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    if (!backendBaseUrl) {
-      throw new Error('backend url is not configured');
+    if (!getBackendBaseUrl()) {
+      throw new Error(backendNotConfiguredMessage);
     }
 
-    const response = await fetch(`${backendBaseUrl}/api/auth/register`, {
+    const payload = await backendRequest<{ user: AuthUser; csrfToken: string }>({
+      path: '/api/auth/register',
       method: 'POST',
-      credentials: 'include',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ name, email, password }),
+      body: { name, email, password },
     });
 
-    if (!response.ok) {
-      throw new Error(await parseErrorMessage(response));
-    }
-
-    const payload = (await response.json()) as { user: AuthUser; csrfToken: string };
-    setUser(payload.user);
-    setCsrfToken(payload.csrfToken);
+    dispatch({
+      type: 'set-session',
+      user: payload.user,
+      csrfToken: payload.csrfToken,
+    });
   }, []);
 
   const logout = useCallback(async () => {
-    if (!backendBaseUrl) {
-      setUser(null);
-      setCsrfToken(null);
+    if (!getBackendBaseUrl()) {
+      dispatch({ type: 'clear-session' });
       return;
     }
 
-    // csrf is required for mutating session endpoints that rely on cookies
-    const response = await fetch(`${backendBaseUrl}/api/auth/logout`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'content-type': 'application/json',
-        ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
-      },
-      body: JSON.stringify({}),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorMessage(response));
+    try {
+      // csrf is required for mutating session endpoints that rely on cookies
+      await backendRequest<{ ok: true }>({
+        path: '/api/auth/logout',
+        method: 'POST',
+        csrfToken: state.csrfToken,
+        body: {},
+      });
+    } catch (error) {
+      dispatch({ type: 'clear-session' });
+      throw error;
     }
 
-    setUser(null);
-    setCsrfToken(null);
-  }, [csrfToken]);
+    dispatch({ type: 'clear-session' });
+  }, [state.csrfToken]);
 
   const value = useMemo<AuthContextValue>(() => ({
-    user,
-    csrfToken,
-    loading,
+    user: state.user,
+    csrfToken: state.csrfToken,
+    loading: state.loading,
     login,
     register,
     logout,
     refreshMe,
-  }), [csrfToken, loading, login, logout, refreshMe, register, user]);
+  }), [login, logout, refreshMe, register, state.csrfToken, state.loading, state.user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

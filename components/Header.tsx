@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AuthModal } from './AuthModal';
@@ -39,6 +39,14 @@ export const Header: React.FC = () => {
   const closeMenu = () => {
     setMenuOpen(false);
   };
+
+  const openAuthModal = useCallback(() => {
+    setAuthOpen(true);
+  }, []);
+
+  const closeAuthModal = useCallback(() => {
+    setAuthOpen(false);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -83,11 +91,44 @@ export const Header: React.FC = () => {
     wasMenuOpenRef.current = isMenuOpen;
   }, [isMenuOpen]);
 
+  useEffect(() => {
+    const handleOpenAuthModal = () => {
+      openAuthModal();
+    };
+
+    window.addEventListener('zg:open-auth-modal', handleOpenAuthModal);
+    return () => {
+      window.removeEventListener('zg:open-auth-modal', handleOpenAuthModal);
+    };
+  }, [openAuthModal]);
+
   return (
     <>
       <header className="sticky top-0 z-50 bg-paper/95 backdrop-blur-sm border-b border-sepia shadow-sm transition-all duration-300 dark:bg-black/90 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
+            <div className="md:hidden flex items-center">
+              <button
+                ref={triggerRef}
+                type="button"
+                className="inline-flex items-center justify-center h-11 w-11 appearance-none border-0 bg-transparent shadow-none text-ink dark:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                onClick={() => setMenuOpen((prev) => !prev)}
+                aria-expanded={isMenuOpen}
+                aria-controls="mobile-menu"
+                aria-label={isMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+              >
+                {isMenuOpen ? (
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+                  </svg>
+                ) : (
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
+                  </svg>
+                )}
+              </button>
+            </div>
+
             {/* logo */}
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="font-display text-3xl tracking-widest text-ink hover:text-accent transition-colors dark:text-gray-100">
@@ -112,26 +153,6 @@ export const Header: React.FC = () => {
 
             {/* actions */}
             <div className="flex items-center space-x-4">
-              <button
-                ref={triggerRef}
-                type="button"
-                className="md:hidden inline-flex items-center justify-center h-11 w-11 border border-sepia dark:border-gray-700 text-ink dark:text-gray-200 hover:border-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                onClick={() => setMenuOpen((prev) => !prev)}
-                aria-expanded={isMenuOpen}
-                aria-controls="mobile-menu"
-                aria-label={isMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
-              >
-                {isMenuOpen ? (
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
-                  </svg>
-                ) : (
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
-                  </svg>
-                )}
-              </button>
-
               <ThemeToggle />
 
               <Link
@@ -150,7 +171,7 @@ export const Header: React.FC = () => {
                 </div>
               ) : (
                 <button
-                  onClick={() => setAuthOpen(true)}
+                  onClick={openAuthModal}
                   className="text-ink font-serif italic hover:text-accent transition-colors dark:text-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   {loading ? '...' : 'Войти'}
@@ -179,7 +200,7 @@ export const Header: React.FC = () => {
                   type="button"
                   onClick={closeMenu}
                   aria-label="Закрыть меню"
-                  className="inline-flex items-center justify-center h-11 w-11 border border-sepia dark:border-gray-700 text-ink dark:text-gray-200 hover:border-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="inline-flex items-center justify-center h-11 w-11 appearance-none border-0 bg-transparent shadow-none text-ink dark:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
@@ -214,7 +235,7 @@ export const Header: React.FC = () => {
                     type="button"
                     onClick={() => {
                       closeMenu();
-                      setAuthOpen(true);
+                      openAuthModal();
                     }}
                     className="text-ink font-serif italic hover:text-accent transition-colors dark:text-gray-300"
                   >
@@ -227,7 +248,7 @@ export const Header: React.FC = () => {
         )}
       </header>
 
-      <AuthModal isOpen={isAuthOpen} onClose={() => setAuthOpen(false)} />
+      <AuthModal isOpen={isAuthOpen} onClose={closeAuthModal} />
     </>
   );
 };
