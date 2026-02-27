@@ -3,6 +3,7 @@ import { ArticleCard } from '@/components/ArticleCard';
 import { EmptyState } from '@/components/EmptyState';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { resolveCollectionVisualState } from '@/services/content/renderPolicy';
 
 export const metadata: Metadata = {
   title: 'Журнал | Zeitgeist',
@@ -19,6 +20,10 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
 
   // SSR: Загрузка данных на сервере
   const articles = await fetchArticles('journal', { page, pageSize: 6 });
+  const collectionState = resolveCollectionVisualState({
+    itemsCount: articles.items.length,
+    fetchMeta: articles.fetchMeta,
+  });
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
@@ -31,9 +36,14 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         {articles.items.length > 0 ? (
           articles.items.map((article, idx) => (
             <div key={article.id} className={idx !== articles.items.length - 1 ? "border-b border-gray-200 pb-12" : ""}>
-              <ArticleCard article={article} featured={true} />
+              <ArticleCard article={article} featured={true} routePath="/journal" />
             </div>
           ))
+        ) : collectionState === 'error' ? (
+          <EmptyState
+            title="раздел журнала временно недоступен"
+            description="ghost api вернул ошибку. как только соединение восстановится, статьи снова появятся автоматически."
+          />
         ) : (
           <EmptyState
             title="раздел журнала готовится"

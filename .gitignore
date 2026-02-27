@@ -43,6 +43,7 @@ ops/ghost-install/
 ops/nginx/active.conf
 ops/nginx/active.conf.*
 docker-compose.yml.bak
+.releases/
 
 # Vercel
 .vercel

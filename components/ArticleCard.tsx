@@ -1,15 +1,18 @@
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Article } from '@/types';
+import { ContentImage } from '@/components/ContentImage';
 
 interface ArticleCardProps {
   article: Article;
   featured?: boolean;
+  routePath?: string;
 }
 
-export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = false }) => {
-  const authorName = article.authors[0]?.name ?? 'Редакция';
+export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = false, routePath = '/' }) => {
+  const authorName = article.authors.length > 0
+    ? article.authors.map((author) => author.name).join(', ')
+    : 'Редакция';
   const formattedDate = new Date(article.published_at).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',
@@ -28,19 +31,18 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
   return (
     <div className={`group flex flex-col rounded-lg ${featured ? 'md:grid md:grid-cols-2 md:gap-8' : ''}`}>
       <Link href={`/article/${article.id}`} className={`relative overflow-hidden rounded-lg bg-sepia ${featured ? 'h-64 md:h-96' : 'h-64'} mb-6 md:mb-0 block`}>
-        {article.feature_image ? (
-          <Image
-            src={article.feature_image}
-            alt={article.title}
-            fill
-            sizes={featured ? '(max-width: 768px) 100vw, 50vw' : '(max-width: 768px) 100vw, 33vw'}
-            className="object-cover transition-transform duration-700 group-hover:scale-105 filter grayscale-[20%] group-hover:grayscale-0"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center px-6 text-center font-sans text-sm uppercase tracking-widest text-gray-500">
-            Нет обложки
-          </div>
-        )}
+        <ContentImage
+          src={article.feature_image}
+          alt={article.title}
+          route={routePath}
+          component="ArticleCard"
+          articleId={article.id}
+          fill
+          priority={featured}
+          sizes={featured ? '(max-width: 768px) 100vw, 50vw' : '(max-width: 768px) 100vw, 33vw'}
+          className="object-cover transition-transform duration-700 group-hover:scale-105 filter grayscale-[20%] group-hover:grayscale-0"
+          fallbackLabel="обложка недоступна"
+        />
         <div className="absolute top-4 left-4">
           <span className={`inline-block px-3 py-1 text-xs font-sans uppercase tracking-widest ${getBadgeColor(article.type)}`}>
             {article.type === 'nova' ? 'Nova Express' : article.type === 'research' ? 'исследование' : 'журнал'}

@@ -68,6 +68,10 @@ export class GhostPublisher implements Publisher {
     const jwt = createGhostAdminJwt(this.env.GHOST_ADMIN_API_KEY);
     const slug = `${slugify(input.submission.title)}-${input.submission.id.slice(0, 8)}`;
     const safeAbstractHtml = `<p>${escapeHtml(input.submission.abstract)}</p>`;
+    const authorTagName = input.author.name.trim() ? `author: ${input.author.name.trim()}` : null;
+    const tags = authorTagName
+      ? [input.section.toLowerCase(), authorTagName]
+      : [input.section.toLowerCase()];
     const adminUrl = new URL('/ghost/api/admin/posts/?source=html', this.env.GHOST_ADMIN_API_URL);
 
     const response = await fetch(adminUrl, {
@@ -84,7 +88,7 @@ export class GhostPublisher implements Publisher {
             html: safeAbstractHtml,
             status: 'published',
             published_at: new Date().toISOString(),
-            tags: [input.section.toLowerCase()],
+            tags,
           },
         ],
       }),

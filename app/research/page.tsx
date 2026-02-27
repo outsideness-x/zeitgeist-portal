@@ -3,6 +3,7 @@ import { ArticleCard } from '@/components/ArticleCard';
 import { EmptyState } from '@/components/EmptyState';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { resolveCollectionVisualState } from '@/services/content/renderPolicy';
 
 export const metadata: Metadata = {
   title: 'Каталог исследований | Zeitgeist',
@@ -17,6 +18,10 @@ export default async function ResearchPage({ searchParams }: ResearchPageProps) 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const page = Math.max(1, Number(resolvedSearchParams?.page ?? '1') || 1);
   const papers = await fetchArticles('research', { page, pageSize: 9 });
+  const collectionState = resolveCollectionVisualState({
+    itemsCount: papers.items.length,
+    fetchMeta: papers.fetchMeta,
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -29,9 +34,16 @@ export default async function ResearchPage({ searchParams }: ResearchPageProps) 
         {papers.items.length > 0 ? (
           papers.items.map(paper => (
             <div key={paper.id} className="bg-white dark:bg-card-bg p-6 border border-sepia dark:border-gray-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
-              <ArticleCard article={paper} />
+              <ArticleCard article={paper} routePath="/research" />
             </div>
           ))
+        ) : collectionState === 'error' ? (
+          <div className="md:col-span-2 lg:col-span-3">
+            <EmptyState
+              title="каталог исследований временно недоступен"
+              description="сбой при запросе к ghost. уже опубликованные материалы вернутся без ручных действий после восстановления API."
+            />
+          </div>
         ) : (
           <div className="md:col-span-2 lg:col-span-3">
             <EmptyState

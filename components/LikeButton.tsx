@@ -31,6 +31,26 @@ type ReactionSummaryResponse = {
   };
 };
 
+const normalizeFeatureImageForEnsure = (rawValue?: string): string | undefined => {
+  const value = rawValue?.trim();
+  if (!value) {
+    return undefined;
+  }
+
+  const candidate = value.startsWith('//') ? `https:${value}` : value;
+
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+};
+
 export const LikeButton = ({ article, baseCount = 0 }: LikeButtonProps): JSX.Element => {
   const { user, csrfToken } = useAuth();
   const [internalArticleId, setInternalArticleId] = useState<string | null>(null);
@@ -44,6 +64,7 @@ export const LikeButton = ({ article, baseCount = 0 }: LikeButtonProps): JSX.Ele
   const normalizedExternalId = article.externalId?.trim() ? article.externalId : undefined;
   const normalizedSlug = article.slug?.trim() || article.id;
   const normalizedCanonicalPath = article.canonicalPath?.trim() || `/article/${normalizedSlug}`;
+  const normalizedFeatureImage = normalizeFeatureImageForEnsure(article.feature_image);
 
   const promptAuthModal = () => {
     if (typeof window === 'undefined') {
@@ -60,8 +81,8 @@ export const LikeButton = ({ article, baseCount = 0 }: LikeButtonProps): JSX.Ele
     excerpt: article.excerpt,
     section: article.type,
     canonicalPath: normalizedCanonicalPath,
-    featureImage: article.feature_image,
-  }), [article.excerpt, article.feature_image, article.title, article.type, articleSource, normalizedCanonicalPath, normalizedExternalId, normalizedSlug]);
+    featureImage: normalizedFeatureImage,
+  }), [article.excerpt, article.title, article.type, articleSource, normalizedCanonicalPath, normalizedExternalId, normalizedFeatureImage, normalizedSlug]);
 
   useEffect(() => {
     let active = true;

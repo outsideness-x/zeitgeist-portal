@@ -2,7 +2,7 @@ import { fetchBookById } from '@/services/content';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import Image from 'next/image';
+import { ContentImage } from '@/components/ContentImage';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -47,12 +47,17 @@ export default async function BookDetailPage({ params }: Props) {
             {/* left column: cover */}
             <div className="w-full md:w-1/3 flex-shrink-0">
               <div className="aspect-[2/3] w-full bg-gray-100 dark:bg-gray-900 shadow-md border border-gray-200 dark:border-gray-700 p-2">
-                <Image
+                <ContentImage
                   src={book.coverImage}
                   alt={book.title}
+                  route="/library"
+                  component="LibraryBookDetail"
+                  articleId={book.id}
                   width={500}
                   height={750}
+                  fill={false}
                   className="h-full w-full object-cover"
+                  fallbackLabel="обложка недоступна"
                 />
               </div>
             </div>

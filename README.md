@@ -84,6 +84,19 @@ to enable ghost paths later:
 
 if ghost adapters are enabled without env values, startup fails with a clear error.
 
+### ghost tag conventions for portal mapping
+
+for ghost-driven articles, portal mapping now uses tags for both section and external authors:
+
+- section tags (required): `journal` or `research` or `nova`
+- author tags (recommended): `author: <display name>` or `автор: <display name>`
+
+notes:
+
+- author tags are converted into article authors in the frontend
+- author tags are hidden from tag chips on portal cards/pages
+- if no explicit `author:`/`автор:` tag exists, the mapper falls back to person-like tag names (for example, `Георгий Иванов`)
+
 ## local e2e checklist
 
 - auth

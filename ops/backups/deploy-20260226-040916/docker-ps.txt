@@ -1,0 +1,9 @@
+zeitgeist-backend|zeitgeist-portal-backend|Up 2 days (healthy)|4000/tcp
+zeitgeist-frontend|8b6542829002|Up 2 days (healthy)|3000/tcp
+zeitgeist-postgres|postgres:16-alpine|Up 2 days (healthy)|5432/tcp
+zeitgeist-minio|minio/minio:latest|Up 2 days|9000/tcp
+dreamy_hypatia|node:20-alpine|Up 8 days|
+zeitgeist-ghost-cms|ghost:5-alpine|Up 9 days (healthy)|127.0.0.1:2368->2368/tcp
+zeitgeist-ghost-mysql|mysql:8|Up 9 days (healthy)|127.0.0.1:3306->3306/tcp, 33060/tcp
+zeitgeist-ghost|ghost:5-alpine|Up 10 days (healthy)|2368/tcp
+zeitgeist-nginx|nginx:1.27-alpine|Up 2 days|0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp

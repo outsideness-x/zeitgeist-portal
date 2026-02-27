@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import type { JSX, PointerEvent } from 'react';
-import Image from 'next/image';
+import { ContentImage } from '@/components/ContentImage';
 
 type ImageCarouselProps = {
   images: string[];
@@ -21,12 +21,15 @@ export const ImageCarousel = ({ images, alt }: ImageCarouselProps): JSX.Element 
     return (
       <section className="mt-8" aria-label="изображение статьи">
         <div className="relative h-[34vh] sm:h-[40vh] md:h-[48vh] overflow-hidden rounded-lg border border-sepia bg-paper dark:border-gray-800 dark:bg-card-bg">
-          <Image
+          <ContentImage
             src={images[0]}
             alt={alt}
+            route="/article"
+            component="ImageCarousel"
             fill
             sizes="(max-width: 768px) 100vw, 900px"
             className="object-cover"
+            fallbackLabel="изображение недоступно"
           />
         </div>
       </section>
@@ -85,12 +88,15 @@ export const ImageCarousel = ({ images, alt }: ImageCarouselProps): JSX.Element 
         className="relative overflow-hidden border border-sepia bg-paper dark:border-gray-800 dark:bg-card-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <div className="relative h-[34vh] sm:h-[40vh] md:h-[48vh]">
-          <Image
+          <ContentImage
             src={images[activeIndex]}
             alt={`${alt} — изображение ${activeIndex + 1}`}
+            route="/article"
+            component="ImageCarousel"
             fill
             sizes="(max-width: 768px) 100vw, 900px"
             className="object-cover"
+            fallbackLabel="изображение недоступно"
           />
         </div>
 

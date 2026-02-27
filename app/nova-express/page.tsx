@@ -1,8 +1,9 @@
 import { fetchArticles } from '@/services/content';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import { EmptyState } from '@/components/EmptyState';
+import { ContentImage } from '@/components/ContentImage';
+import { resolveCollectionVisualState } from '@/services/content/renderPolicy';
 
 export const metadata: Metadata = {
   title: 'Nova Express | Zeitgeist',
@@ -17,6 +18,10 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const page = Math.max(1, Number(resolvedSearchParams?.page ?? '1') || 1);
   const articles = await fetchArticles('nova', { page, pageSize: 9 });
+  const collectionState = resolveCollectionVisualState({
+    itemsCount: articles.items.length,
+    fetchMeta: articles.fetchMeta,
+  });
 
   return (
     <div className="min-h-screen relative overflow-hidden font-mono">
@@ -54,19 +59,17 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
 
                 <Link href={`/article/${article.id}`} className="mb-5 block">
                   <div className="relative aspect-[16/10] overflow-hidden rounded border border-ink dark:border-gray-700 bg-sepia">
-                    {article.feature_image ? (
-                      <Image
-                        src={article.feature_image}
-                        alt={article.title}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center px-4 text-center text-[11px] uppercase tracking-widest text-gray-500">
-                        no preview image
-                      </div>
-                    )}
+                    <ContentImage
+                      src={article.feature_image}
+                      alt={article.title}
+                      route="/nova-express"
+                      component="NovaCard"
+                      articleId={article.id}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      fallbackLabel="no preview image"
+                    />
                   </div>
                 </Link>
 
@@ -101,6 +104,13 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
                 </div>
               </article>
             ))
+          ) : collectionState === 'error' ? (
+            <div className="md:col-span-2 lg:col-span-3">
+              <EmptyState
+                title="nova express временно недоступен"
+                description="ghost api вернул ошибку. лента восстановится автоматически после успешного запроса."
+              />
+            </div>
           ) : (
             <div className="md:col-span-2 lg:col-span-3">
               <EmptyState

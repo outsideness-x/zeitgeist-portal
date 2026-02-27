@@ -146,6 +146,10 @@ export class GhostContentProvider implements ContentProvider {
       page: response.meta.pagination.page,
       pageSize: response.meta.pagination.limit,
       totalPages: Math.max(1, response.meta.pagination.pages),
+      fetchMeta: {
+        status: 'success',
+        fromFallback: false,
+      },
     };
   });
 

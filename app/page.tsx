@@ -2,11 +2,18 @@ import Link from 'next/link';
 import { fetchArticles } from '@/services/content';
 import { ArticleCard } from '@/components/ArticleCard';
 import { EmptyState } from '@/components/EmptyState';
+import { resolveCollectionVisualState } from '@/services/content/renderPolicy';
+
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   // data fetching on server
   const articlesResult = await fetchArticles(undefined, { page: 1, pageSize: 20 });
   const articles = articlesResult.items;
+  const feedState = resolveCollectionVisualState({
+    itemsCount: articles.length,
+    fetchMeta: articlesResult.fetchMeta,
+  });
 
   const featured = articles[0];
   const journalArticles = articles.filter(a => a.type === 'journal').slice(1, 4);
@@ -26,7 +33,13 @@ export default async function Home() {
         {/* Featured Article */}
         <div className="bg-paper dark:bg-card-bg p-6 md:p-10 shadow-xl border border-sepia dark:border-gray-700 mb-20 transition-colors duration-300">
           {featured ? (
-            <ArticleCard article={featured} featured={true} />
+            <ArticleCard article={featured} featured={true} routePath="/" />
+          ) : feedState === 'error' ? (
+            <EmptyState
+              title="не удалось загрузить главный материал"
+              description="ghost временно недоступен. показываем последнюю стабильную версию сразу после восстановления."
+              className="border-0 bg-transparent p-0"
+            />
           ) : (
             <EmptyState
               title="главный материал готовится"
@@ -49,8 +62,13 @@ export default async function Home() {
             <div className="space-y-12">
               {journalArticles.length > 0 ? (
                 journalArticles.map(article => (
-                  <ArticleCard key={article.id} article={article} />
+                  <ArticleCard key={article.id} article={article} routePath="/" />
                 ))
+              ) : feedState === 'error' ? (
+                <EmptyState
+                  title="журнал временно недоступен"
+                  description="не удалось получить данные из ghost. попробуйте обновить страницу через минуту."
+                />
               ) : (
                 <EmptyState
                   title="раздел журнала готовится"
@@ -86,6 +104,11 @@ export default async function Home() {
                       </div>
                     </div>
                   ))
+                ) : feedState === 'error' ? (
+                  <EmptyState
+                    title="исследования временно недоступны"
+                    description="получение данных из ghost завершилось ошибкой. как только API восстановится, список появится автоматически."
+                  />
                 ) : (
                   <EmptyState
                     title="исследования скоро появятся"
