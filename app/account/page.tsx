@@ -92,7 +92,7 @@ export default function AccountPage() {
     try {
       const [bookmarkResponse, submissionResponse] = await Promise.all([
         backendRequest<BookmarksResponse>({
-          path: '/api/me/bookmarks?page=1&pageSize=100',
+          path: '/api/me/bookmarks?page=1&pageSize=50',
         }),
         backendRequest<SubmissionsResponse>({
           path: '/api/submissions/me?page=1&pageSize=50',
@@ -137,12 +137,9 @@ export default function AccountPage() {
 
     try {
       await backendRequest({
-        path: '/api/me/bookmarks/toggle',
-        method: 'POST',
+        path: `/api/me/bookmarks/${encodeURIComponent(articleId)}`,
+        method: 'DELETE',
         csrfToken,
-        body: {
-          articleId,
-        },
       });
 
       setBookmarks((current) => current.filter((bookmark) => bookmark.article.id !== articleId));

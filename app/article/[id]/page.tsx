@@ -2,6 +2,7 @@ import { fetchArticleById } from '@/services/content';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { LikeButton } from '@/components/LikeButton';
+import { BookmarkButton } from '@/components/BookmarkButton';
 import { ImageCarousel } from '@/components/ImageCarousel';
 import { ContentImage } from '@/components/ContentImage';
 
@@ -121,20 +122,35 @@ export default async function ArticlePage({ params }: Props) {
             <div className="font-serif text-lg text-gray-500 italic">
               Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span> &mdash; {formattedDate} &mdash; {readingTime}
             </div>
-            <LikeButton
-              article={{
-                id: article.id,
-                source: article.source,
-                externalId: article.externalId,
-                slug: article.slug,
-                canonicalPath: article.canonicalPath,
-                title: article.title,
-                excerpt: article.excerpt,
-                feature_image: article.feature_image,
-                type: article.type,
-              }}
-              baseCount={article.baseLikeCount ?? 0}
-            />
+            <div className="flex items-center gap-2 md:gap-3">
+              <BookmarkButton
+                article={{
+                  id: article.id,
+                  source: article.source,
+                  externalId: article.externalId,
+                  slug: article.slug,
+                  canonicalPath: article.canonicalPath,
+                  title: article.title,
+                  excerpt: article.excerpt,
+                  feature_image: article.feature_image,
+                  type: article.type,
+                }}
+              />
+              <LikeButton
+                article={{
+                  id: article.id,
+                  source: article.source,
+                  externalId: article.externalId,
+                  slug: article.slug,
+                  canonicalPath: article.canonicalPath,
+                  title: article.title,
+                  excerpt: article.excerpt,
+                  feature_image: article.feature_image,
+                  type: article.type,
+                }}
+                baseCount={article.baseLikeCount ?? 0}
+              />
+            </div>
           </div>
         </div>
       </div>

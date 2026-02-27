@@ -36,6 +36,21 @@ describe('content render policy', () => {
     expect(telemetry['placeholder-blocked|/journal|ArticleCard']).toBe(1);
   });
 
+  it('never allows placeholder cards on article route', () => {
+    const state = resolveCardVisualState({
+      route: '/article/some-post',
+      component: 'BookmarkButton',
+      articleId: 'article-1',
+      hasRenderableContent: false,
+      requestPlaceholder: true,
+    });
+
+    expect(state).toBe('fallback');
+
+    const telemetry = getContentTelemetrySnapshot();
+    expect(telemetry['placeholder-blocked|/article/some-post|BookmarkButton']).toBe(1);
+  });
+
   it('allows placeholder cards in library route', () => {
     const state = resolveCardVisualState({
       route: '/library',

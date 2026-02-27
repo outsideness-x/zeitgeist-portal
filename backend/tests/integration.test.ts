@@ -175,6 +175,80 @@ describe.skipIf(!canRun)('backend integration', () => {
     expect(removeResponse.body.bookmarked).toBe(false);
   });
 
+  it('bookmark add status remove endpoints are idempotent and auth-protected', async () => {
+    const articleId = await ensureArticle('bookmark-idempotent');
+
+    const unauthorizedStatus = await request
+      .get(`/api/me/bookmarks/status?articleId=${encodeURIComponent(articleId)}`);
+
+    expect(unauthorizedStatus.status).toBe(401);
+
+    const unauthorizedAdd = await request
+      .post('/api/me/bookmarks')
+      .send({ articleId });
+
+    expect(unauthorizedAdd.status).toBe(401);
+
+    const identity = await registerUser(`bookmark-idempotent-${randomUUID()}@example.com`);
+
+    const firstAddResponse = await request
+      .post('/api/me/bookmarks')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({ articleId });
+
+    expect(firstAddResponse.status).toBe(201);
+    expect(firstAddResponse.body.bookmarked).toBe(true);
+
+    const secondAddResponse = await request
+      .post('/api/me/bookmarks')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({ articleId });
+
+    expect(secondAddResponse.status).toBe(200);
+    expect(secondAddResponse.body.bookmarked).toBe(true);
+
+    const savedRowsCount = await app.prisma.bookmark.count({
+      where: {
+        userId: identity.user.id,
+        articleId,
+      },
+    });
+
+    expect(savedRowsCount).toBe(1);
+
+    const statusAfterAdd = await request
+      .get(`/api/me/bookmarks/status?articleId=${encodeURIComponent(articleId)}`)
+      .set('Cookie', identity.cookies);
+
+    expect(statusAfterAdd.status).toBe(200);
+    expect(statusAfterAdd.body.bookmarked).toBe(true);
+
+    const firstDeleteResponse = await request
+      .delete(`/api/me/bookmarks/${articleId}`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken);
+
+    expect(firstDeleteResponse.status).toBe(200);
+    expect(firstDeleteResponse.body.bookmarked).toBe(false);
+
+    const secondDeleteResponse = await request
+      .delete(`/api/me/bookmarks/${articleId}`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken);
+
+    expect(secondDeleteResponse.status).toBe(200);
+    expect(secondDeleteResponse.body.bookmarked).toBe(false);
+
+    const statusAfterDelete = await request
+      .get(`/api/me/bookmarks/status?articleId=${encodeURIComponent(articleId)}`)
+      .set('Cookie', identity.cookies);
+
+    expect(statusAfterDelete.status).toBe(200);
+    expect(statusAfterDelete.body.bookmarked).toBe(false);
+  });
+
   it('reaction set update and clear flow works', async () => {
     const identity = await registerUser(`reaction-${randomUUID()}@example.com`);
 

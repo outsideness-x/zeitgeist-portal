@@ -60,6 +60,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        BUILD_COMMIT: ${BUILD_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+        BUILD_REF: ${BUILD_REF:-unknown}
     container_name: zeitgeist-backend
     env_file:
       - ./backend/.env.production
@@ -86,6 +90,9 @@ services:
         GHOST_CONTENT_API_URL: ${GHOST_CONTENT_API_URL:-}
         GHOST_CONTENT_API_KEY: ${GHOST_CONTENT_API_KEY:-}
         GHOST_REVALIDATE_SECONDS: ${GHOST_REVALIDATE_SECONDS:-120}
+        BUILD_COMMIT: ${BUILD_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+        BUILD_REF: ${BUILD_REF:-unknown}
     container_name: zeitgeist-frontend
     environment:
       NODE_ENV: production

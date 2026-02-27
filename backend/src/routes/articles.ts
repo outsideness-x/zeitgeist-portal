@@ -110,6 +110,7 @@ export const registerArticleRoutes = async (app: FastifyInstance) => {
     };
 
     const updateData = {
+      slug: resolvedSlug,
       title: body.title ?? undefined,
       excerpt: body.excerpt ?? undefined,
       canonicalPath,
