@@ -77,6 +77,7 @@ model Session {
 model Submission {
   id               String           @id @default(cuid())
   authorUserId     String
+  clientRequestId  String?
   title            String
   keywords         String[]
   abstract         String
@@ -95,6 +96,7 @@ model Submission {
   @@index([authorUserId])
   @@index([status])
   @@index([lastSubmittedAt])
+  @@unique([authorUserId, clientRequestId])
 }
 
 model SubmissionFile {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { backendRequest } from '@/services/backend/client';
@@ -21,6 +21,9 @@ type UploadInitResponse = {
 
 export default function UploadPage() {
   const { user, csrfToken, loading: authLoading } = useAuth();
+  const createLockRef = useRef(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const idempotencyFingerprintRef = useRef<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [keywords, setKeywords] = useState('');
@@ -102,6 +105,14 @@ export default function UploadPage() {
     });
   };
 
+  const createClientRequestId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  };
+
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -115,11 +126,29 @@ export default function UploadPage() {
       return;
     }
 
+    if (createLockRef.current) {
+      return;
+    }
+
+    createLockRef.current = true;
+
     setErrorMessage('');
     setUploadStatus('uploading');
     setProgress(0);
 
     try {
+      const payloadFingerprint = JSON.stringify({
+        title: title.trim(),
+        keywords: keywords.trim(),
+        abstract: abstract.trim(),
+        requestedSection,
+      });
+
+      if (!idempotencyKeyRef.current || idempotencyFingerprintRef.current !== payloadFingerprint) {
+        idempotencyKeyRef.current = createClientRequestId();
+        idempotencyFingerprintRef.current = payloadFingerprint;
+      }
+
       const createResponse = await backendRequest<SubmissionCreateResponse>({
         path: '/api/submissions',
         method: 'POST',
@@ -129,6 +158,7 @@ export default function UploadPage() {
           keywords,
           abstract,
           requestedSection,
+          clientRequestId: idempotencyKeyRef.current,
         },
       });
 
@@ -156,10 +186,14 @@ export default function UploadPage() {
       setSubmittedId(createResponse.submission.id);
       setUploadStatus('completed');
       setProgress(100);
+      idempotencyKeyRef.current = null;
+      idempotencyFingerprintRef.current = null;
     } catch (error) {
       setUploadStatus('idle');
       setProgress(0);
       setErrorMessage(error instanceof Error ? error.message : 'не удалось отправить рукопись.');
+    } finally {
+      createLockRef.current = false;
     }
   };
 

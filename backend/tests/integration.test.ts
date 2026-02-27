@@ -537,6 +537,125 @@ describe.skipIf(!canRun)('backend integration', () => {
     expect(listResponse.body.items.length).toBe(1);
   });
 
+  it('submission create enforces auth and payload validation', async () => {
+    const unauthorizedCreate = await request
+      .post('/api/submissions')
+      .send({
+        title: 'unauthorized submission',
+        keywords: 'validation',
+        abstract: 'this abstract is long enough for the validation scenario to run.',
+      });
+
+    expect(unauthorizedCreate.status).toBe(401);
+
+    const identity = await registerUser(`submission-validation-${randomUUID()}@example.com`, 'submission validation');
+
+    const invalidPayloadResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({
+        title: 'x',
+        keywords: '',
+        abstract: 'short',
+      });
+
+    expect(invalidPayloadResponse.status).toBe(400);
+  });
+
+  it('submission create is idempotent by author and clientRequestId', async () => {
+    const identity = await registerUser(`submission-idempotent-${randomUUID()}@example.com`, 'idempotent author');
+    const clientRequestId = `submission-${randomUUID()}`;
+
+    const basePayload = {
+      title: 'idempotent submission',
+      keywords: 'idempotent,submission',
+      abstract: 'this abstract validates idempotent submission creation behavior for duplicate retries.',
+      requestedSection: 'research',
+      clientRequestId,
+    };
+
+    const firstCreateResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send(basePayload);
+
+    expect(firstCreateResponse.status).toBe(201);
+    const submissionId = firstCreateResponse.body.submission.id as string;
+
+    const secondCreateResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send(basePayload);
+
+    expect(secondCreateResponse.status).toBe(200);
+    expect(secondCreateResponse.body.idempotent).toBe(true);
+    expect(secondCreateResponse.body.submission.id).toBe(submissionId);
+
+    const conflictingReuseResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({
+        ...basePayload,
+        title: 'changed title',
+      });
+
+    expect(conflictingReuseResponse.status).toBe(409);
+    expect(conflictingReuseResponse.body.code).toBe('idempotency_key_reuse');
+
+    const savedRowsCount = await app.prisma.submission.count({
+      where: {
+        authorUserId: identity.user.id,
+      },
+    });
+
+    expect(savedRowsCount).toBe(1);
+  });
+
+  it('submission detail is isolated to owner while admin queue sees all submissions', async () => {
+    const authorIdentity = await registerUser(`submission-owner-${randomUUID()}@example.com`, 'owner');
+    const outsiderIdentity = await registerUser(`submission-outsider-${randomUUID()}@example.com`, 'outsider');
+    const adminIdentity = await registerUser(`submission-admin-${randomUUID()}@example.com`, 'submission admin');
+
+    await app.prisma.user.update({
+      where: {
+        id: adminIdentity.user.id,
+      },
+      data: {
+        role: 'ADMIN',
+      },
+    });
+
+    const createSubmissionResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', authorIdentity.cookies)
+      .set('x-csrf-token', authorIdentity.csrfToken)
+      .send({
+        title: 'owner submission',
+        keywords: 'owner,permissions',
+        abstract: 'this abstract validates owner isolation and admin visibility for submission records.',
+      });
+
+    expect(createSubmissionResponse.status).toBe(201);
+    const submissionId = createSubmissionResponse.body.submission.id as string;
+
+    const outsiderDetail = await request
+      .get(`/api/submissions/me/${submissionId}`)
+      .set('Cookie', outsiderIdentity.cookies);
+
+    expect(outsiderDetail.status).toBe(403);
+
+    const adminQueueResponse = await request
+      .get('/api/admin/submissions?page=1&pageSize=50')
+      .set('Cookie', adminIdentity.cookies);
+
+    expect(adminQueueResponse.status).toBe(200);
+    expect(adminQueueResponse.body.items.some((item: { id: string }) => item.id === submissionId)).toBe(true);
+  });
+
   it('admin approve publishes and promotes author role', async () => {
     const authorIdentity = await registerUser(`candidate-${randomUUID()}@example.com`, 'candidate');
 

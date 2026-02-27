@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import type { ArticleSection, SubmissionStatus } from '@prisma/client';
 import { z } from 'zod';
 import { getEnv } from '../config/env.js';
@@ -22,6 +23,7 @@ const createSubmissionSchema = z.object({
   keywords: z.union([z.array(z.string().trim().min(1).max(80)), z.string().trim()]),
   abstract: z.string().trim().min(40).max(12000),
   requestedSection: z.enum(['journal', 'research', 'nova']).optional(),
+  clientRequestId: z.string().trim().min(8).max(120).regex(/^[a-zA-Z0-9._:-]+$/).optional(),
 });
 
 const uploadInitSchema = z.object({
@@ -66,6 +68,35 @@ const normalizeKeywords = (raw: string[] | string) => {
     .filter(Boolean);
 };
 
+const isCreatePayloadMatch = (args: {
+  existing: {
+    title: string;
+    keywords: string[];
+    abstract: string;
+    requestedSection: ArticleSection | null;
+  };
+  incoming: {
+    title: string;
+    keywords: string[];
+    abstract: string;
+    requestedSection: ArticleSection | null;
+  };
+}) => {
+  if (
+    args.existing.title !== args.incoming.title ||
+    args.existing.abstract !== args.incoming.abstract ||
+    args.existing.requestedSection !== args.incoming.requestedSection
+  ) {
+    return false;
+  }
+
+  if (args.existing.keywords.length !== args.incoming.keywords.length) {
+    return false;
+  }
+
+  return args.existing.keywords.every((keyword, index) => keyword === args.incoming.keywords[index]);
+};
+
 const assertCanAccessSubmission = (args: {
   authUserId: string;
   authRole: 'READER' | 'AUTHOR' | 'ADMIN';
@@ -83,6 +114,12 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
 
   app.post('/api/submissions', {
     preHandler: [requireAuth, requireCsrf],
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
   }, async (request, reply) => {
     if (!request.auth) {
       return;
@@ -95,17 +132,95 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
     }
 
     const keywords = normalizeKeywords(parsed.data.keywords);
+    const requestedSection = parsed.data.requestedSection ? sectionMap[parsed.data.requestedSection] : null;
+    const clientRequestId = parsed.data.clientRequestId?.trim() || null;
 
-    const submission = await app.prisma.submission.create({
-      data: {
-        title: parsed.data.title,
-        keywords,
-        abstract: parsed.data.abstract,
-        requestedSection: parsed.data.requestedSection ? sectionMap[parsed.data.requestedSection] : null,
-        authorUserId: request.auth.userId,
-        status: 'DRAFT',
-      },
-    });
+    const createInput = {
+      title: parsed.data.title,
+      keywords,
+      abstract: parsed.data.abstract,
+      requestedSection,
+    };
+
+    const findByIdempotencyKey = async () => {
+      if (!clientRequestId) {
+        return null;
+      }
+
+      return app.prisma.submission.findUnique({
+        where: {
+          authorUserId_clientRequestId: {
+            authorUserId: request.auth.userId,
+            clientRequestId,
+          },
+        },
+      });
+    };
+
+    const existingByKey = await findByIdempotencyKey();
+
+    if (existingByKey) {
+      if (!isCreatePayloadMatch({ existing: existingByKey, incoming: createInput })) {
+        reply.code(409).send({
+          error: 'conflict',
+          code: 'idempotency_key_reuse',
+          message: 'idempotency key was already used with a different payload',
+        });
+        return;
+      }
+
+      reply.send({
+        submission: existingByKey,
+        idempotent: true,
+      });
+      return;
+    }
+
+    let submission;
+    try {
+      submission = await app.prisma.submission.create({
+        data: {
+          title: createInput.title,
+          keywords: createInput.keywords,
+          abstract: createInput.abstract,
+          requestedSection: createInput.requestedSection,
+          authorUserId: request.auth.userId,
+          clientRequestId,
+          status: 'DRAFT',
+        },
+      });
+    } catch (error) {
+      // this handles concurrent retries that race on the same author+request key
+      const isIdempotencyRace = (
+        clientRequestId &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      );
+
+      if (!isIdempotencyRace) {
+        throw error;
+      }
+
+      const racedSubmission = await findByIdempotencyKey();
+      if (!racedSubmission) {
+        throw error;
+      }
+
+      if (!isCreatePayloadMatch({ existing: racedSubmission, incoming: createInput })) {
+        reply.code(409).send({
+          error: 'conflict',
+          code: 'idempotency_key_reuse',
+          message: 'idempotency key was already used with a different payload',
+        });
+        return;
+      }
+
+      reply.send({
+        submission: racedSubmission,
+        idempotent: true,
+      });
+      return;
+    }
 
     await writeAuditLog({
       prisma: app.prisma,
@@ -240,6 +355,37 @@ export const registerSubmissionRoutes = async (app: FastifyInstance) => {
 
     if (!body.data.storageKey.startsWith(`submissions/${submission.id}/`)) {
       reply.code(400).send({ error: 'bad_request', message: 'storage key does not match submission scope' });
+      return;
+    }
+
+    const existingFile = await app.prisma.submissionFile.findUnique({
+      where: {
+        storageKey: body.data.storageKey,
+      },
+    });
+
+    if (existingFile) {
+      if (existingFile.submissionId !== submission.id) {
+        reply.code(400).send({ error: 'bad_request', message: 'storage key does not match submission scope' });
+        return;
+      }
+
+      const currentSubmission = await app.prisma.submission.findUnique({
+        where: {
+          id: submission.id,
+        },
+      });
+
+      if (!currentSubmission) {
+        reply.code(404).send({ error: 'not_found', message: 'submission not found' });
+        return;
+      }
+
+      reply.send({
+        submission: currentSubmission,
+        file: existingFile,
+        idempotent: true,
+      });
       return;
     }
 
