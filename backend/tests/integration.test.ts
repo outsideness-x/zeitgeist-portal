@@ -39,7 +39,24 @@ process.env.MAX_APPLAUSE_PER_USER_PER_ARTICLE = process.env.MAX_APPLAUSE_PER_USE
 process.env.CONTENT_PROVIDER = process.env.CONTENT_PROVIDER ?? 'local';
 process.env.PUBLISH_PROVIDER = process.env.PUBLISH_PROVIDER ?? 'local';
 
-const canRun = Boolean(process.env.DATABASE_URL);
+const isSafeTestDatabaseUrl = (value: string | undefined): boolean => {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(value);
+    const dbName = parsed.pathname.replace(/^\/+/, '');
+    return /test/i.test(dbName);
+  } catch {
+    return /test/i.test(value);
+  }
+};
+
+const canRun = (
+  process.env.RUN_INTEGRATION_TESTS === '1' &&
+  isSafeTestDatabaseUrl(process.env.DATABASE_URL)
+);
 
 describe.skipIf(!canRun)('backend integration', () => {
   const app = buildServer();
