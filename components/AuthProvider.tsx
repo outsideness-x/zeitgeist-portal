@@ -8,7 +8,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   csrfToken: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, callbackPath?: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
@@ -65,16 +65,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     void refreshMe();
   }, [refreshMe]);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, callbackPath?: string) => {
     if (!getBackendBaseUrl()) {
       throw new Error(backendNotConfiguredMessage);
     }
 
-    const payload = await backendRequest<{ user: AuthUser; csrfToken: string }>({
+    const payload = await backendRequest<{
+      user?: AuthUser;
+      csrfToken?: string;
+    }>({
       path: '/api/auth/login',
       method: 'POST',
-      body: { email, password },
+      body: { email, password, callbackPath },
     });
+
+    if (!payload.user || !payload.csrfToken) {
+      throw new Error('Не удалось выполнить вход.');
+    }
 
     dispatch({
       type: 'set-session',

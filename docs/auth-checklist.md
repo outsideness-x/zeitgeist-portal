@@ -16,10 +16,21 @@
 - [ ] valid login works
 - [ ] invalid password handled
 - [ ] logout works and clears state
+- [ ] google oauth login works for a new user
+- [ ] google oauth existing password-user requires secure link flow (no silent auto-link)
 
 ## session
 - [ ] refresh on page reload works
 - [ ] no infinite loops, no max update depth error
+- [ ] already logged-in users stay logged in after deploy (no forced logout)
+
+## email 2fa
+- [ ] user with 2fa disabled logs in with password as before
+- [ ] user with 2fa enabled gets code challenge after password/google primary auth
+- [ ] code expires after ttl and cannot be reused
+- [ ] resend cooldown and resend limit enforced
+- [ ] verify attempts lockout is enforced
+- [ ] 2fa enable/disable in account settings requires email code
 
 ## permissions
 - [ ] like/heart action logged out prompts auth modal

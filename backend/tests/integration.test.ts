@@ -9,6 +9,7 @@ vi.mock('../src/lib/storage.js', () => {
     createSubmissionStorageKey: (submissionId: string) => `submissions/${submissionId}/mock.pdf`,
     createPresignedPutUrl: async () => 'http://upload.local/presigned-put',
     createPresignedGetUrl: async () => 'http://download.local/presigned-get',
+    putStoredObject: async () => undefined,
     headStoredObject: async () => ({
       ContentLength: 2048,
       ContentType: 'application/pdf',
@@ -535,6 +536,61 @@ describe.skipIf(!canRun)('backend integration', () => {
     expect(listResponse.status).toBe(200);
     expect(Array.isArray(listResponse.body.items)).toBe(true);
     expect(listResponse.body.items.length).toBe(1);
+  });
+
+  it('submission relay upload accepts pdf bytes and rejects invalid mime', async () => {
+    const identity = await registerUser(`author-relay-${randomUUID()}@example.com`, 'author relay');
+
+    const createSubmissionResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({
+        title: 'relay submission',
+        keywords: 'relay,upload',
+        abstract: 'this abstract validates backend relay upload behavior with mime guards and completion.',
+        requestedSection: 'research',
+      });
+
+    expect(createSubmissionResponse.status).toBe(201);
+    const submissionId = createSubmissionResponse.body.submission.id as string;
+
+    const uploadInitResponse = await request
+      .post(`/api/submissions/${submissionId}/upload/init`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({ originalName: 'relay.pdf' });
+
+    expect(uploadInitResponse.status).toBe(200);
+
+    const relayUploadResponse = await request
+      .post(`/api/submissions/${submissionId}/upload/file?storageKey=${encodeURIComponent(uploadInitResponse.body.storageKey as string)}`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .set('content-type', 'application/pdf')
+      .send(Buffer.from('%PDF-1.7\n'));
+
+    expect(relayUploadResponse.status).toBe(201);
+
+    const invalidMimeResponse = await request
+      .post(`/api/submissions/${submissionId}/upload/file?storageKey=${encodeURIComponent(uploadInitResponse.body.storageKey as string)}`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .set('content-type', 'text/plain')
+      .send('not-pdf');
+
+    expect(invalidMimeResponse.status).toBe(400);
+
+    const uploadCompleteResponse = await request
+      .post(`/api/submissions/${submissionId}/upload/complete`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({
+        storageKey: uploadInitResponse.body.storageKey,
+        originalName: 'relay.pdf',
+      });
+
+    expect(uploadCompleteResponse.status).toBe(200);
   });
 
   it('submission create enforces auth and payload validation', async () => {

@@ -109,8 +109,8 @@ export default async function ArticlePage({ params }: Props) {
   const safeHtml = article.html ? enhanceFootnoteLinks(sanitizeArticleHtml(article.html)) : '';
 
   return (
-    <article className="pb-20 min-h-screen bg-paper dark:bg-black transition-colors duration-300">
-      <div className="bg-paper dark:bg-black py-20 px-4 text-center border-b border-sepia dark:border-gray-800">
+    <article className="pb-20 min-h-screen bg-paper dark:bg-card-bg transition-colors duration-300">
+      <div className="bg-paper dark:bg-card-bg py-20 px-4 text-center border-b border-sepia dark:border-gray-800">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-center gap-2 mb-6">
             <span className={`px-3 py-1 text-xs font-sans uppercase tracking-widest text-white ${article.type === 'nova' ? 'bg-black border border-green-500 text-green-500' : 'bg-accent'}`}>
@@ -170,7 +170,7 @@ export default async function ArticlePage({ params }: Props) {
              fallbackClassName="flex h-full items-center justify-center bg-sepia px-6 text-center font-sans text-sm uppercase tracking-widest text-gray-600"
              fallbackLabel="обложка статьи недоступна"
            />
-           <div className="absolute inset-0 bg-gradient-to-t from-paper dark:from-black to-transparent h-20 bottom-0 top-auto"></div>
+           <div className="absolute inset-0 bg-gradient-to-t from-paper dark:from-[#121212] to-transparent h-20 bottom-0 top-auto"></div>
         </div>
       )}
 

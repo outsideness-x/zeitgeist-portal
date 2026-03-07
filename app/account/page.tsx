@@ -78,7 +78,7 @@ export default function AccountPage() {
     if (!user) {
       return false;
     }
-    return user.role === 'AUTHOR' || user.role === 'ADMIN';
+    return user.role === 'AUTHOR';
   }, [user]);
 
   const loadData = async () => {
@@ -155,8 +155,8 @@ export default function AccountPage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16">
-        <h1 className="mb-4 font-display text-4xl">кабинет</h1>
-        <p className="text-gray-600">выполните вход, чтобы открыть личный кабинет.</p>
+        <h1 className="mb-4 font-display text-4xl">Кабинет</h1>
+        <p className="text-gray-600">Выполните вход, чтобы открыть личный кабинет.</p>
       </div>
     );
   }
@@ -165,21 +165,21 @@ export default function AccountPage() {
     <div className="mx-auto max-w-6xl px-4 py-16">
       <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl">кабинет</h1>
-          <p className="text-sm text-gray-500">роль: {user.role.toLowerCase()}</p>
+          <h1 className="font-display text-4xl">Кабинет</h1>
+          <p className="text-sm text-gray-500">Роль: {user.role.toLowerCase()}</p>
         </div>
         <Link href="/upload" className="border border-accent px-4 py-2 text-xs uppercase tracking-widest text-accent hover:bg-accent hover:text-white">
-          отправить рукопись
+          Отправить рукопись
         </Link>
       </div>
 
       {errorMessage && <p className="mb-6 text-sm text-red-600">{errorMessage}</p>}
       {isFetching && <p className="mb-6 text-sm text-gray-500">обновляем данные...</p>}
 
-      <section className="mb-10 border border-sepia bg-white p-6">
-        <h2 className="mb-4 font-display text-2xl">закладки</h2>
+      <section className="mb-10 border border-sepia bg-card-bg p-6">
+        <h2 className="mb-4 font-display text-2xl">Закладки</h2>
         {bookmarks.length === 0 ? (
-          <p className="text-sm text-gray-500">вы пока не добавляли статьи в закладки.</p>
+          <p className="text-sm text-gray-500">Вы пока не добавляли статьи в закладки.</p>
         ) : (
           <ul className="space-y-3">
             {bookmarks.map((bookmark) => (
@@ -205,10 +205,10 @@ export default function AccountPage() {
         )}
       </section>
 
-      <section className="mb-10 border border-sepia bg-white p-6">
+      <section className="mb-10 border border-sepia bg-card-bg p-6">
         <h2 className="mb-4 font-display text-2xl">заявки</h2>
         {submissions.length === 0 ? (
-          <p className="text-sm text-gray-500">у вас еще нет заявок.</p>
+          <p className="text-sm text-gray-500">У вас еще нет заявок.</p>
         ) : (
           <div className="space-y-4">
             {submissions.map((submission) => (
@@ -247,7 +247,7 @@ export default function AccountPage() {
       </section>
 
       {canSeeAuthorStats && authorStats7 && authorStats30 && (
-        <section className="border border-sepia bg-white p-6">
+        <section className="border border-sepia bg-card-bg p-6">
           <h2 className="mb-4 font-display text-2xl">аналитика автора</h2>
 
           <AuthorAnalyticsCharts stats7={authorStats7} stats30={authorStats30} />

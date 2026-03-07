@@ -26,7 +26,7 @@ export default async function LibraryPage() {
           books.map((book) => (
             <Link href={`/library/${book.id}`} key={book.id} className="group block h-full">
               <div className="bg-white dark:bg-card-bg border border-sepia dark:border-gray-800 p-4 h-full transition-all duration-300 hover:shadow-lg hover:border-accent dark:hover:border-gray-600">
-                <div className="aspect-[2/3] w-full bg-gray-100 dark:bg-gray-900 mb-4 overflow-hidden relative">
+                <div className="aspect-[2/3] w-full bg-gray-100 dark:bg-card-bg mb-4 overflow-hidden relative">
                   <ContentImage
                     src={book.coverImage}
                     alt={book.title}

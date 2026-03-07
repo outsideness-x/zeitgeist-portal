@@ -22,7 +22,7 @@ export default async function Home() {
   return (
     <div className="pb-20">
       {/* Hero Section - FIXED: Colors for Dark Mode */}
-      <section className="bg-paper text-ink dark:bg-black dark:text-gray-100 py-20 px-4 text-center transition-colors duration-300 border-b border-transparent dark:border-gray-800">
+      <section className="bg-paper text-ink dark:bg-card-bg dark:text-gray-100 py-20 px-4 text-center transition-colors duration-300 border-b border-transparent dark:border-gray-800">
         <h1 className="font-display text-5xl md:text-7xl mb-6">Zeitgeist</h1>
         <p className="font-serif text-xl md:text-2xl text-gray-500 dark:text-gray-400 italic max-w-2xl mx-auto">
           &quot;Дух времени.&quot; Исследуем историю, культуру и рукописи Востока.
@@ -119,7 +119,7 @@ export default async function Home() {
             </div>
 
             {/* Donation CTA */}
-            <div className="bg-sepia dark:bg-gray-900 p-8 text-center border border-gray-300 dark:border-gray-700 transition-colors">
+            <div className="bg-sepia dark:bg-card-bg p-8 text-center border border-gray-300 dark:border-gray-700 transition-colors">
                 <h3 className="font-display text-2xl mb-4">Поддержите нашу работу</h3>
                 <p className="font-serif text-sm mb-6 text-gray-700 dark:text-gray-400">Помогите нам сохранять архивы открытыми и бесплатными для всех исследователей.</p>
                 <Link href="/donate" className="inline-block px-6 py-3 bg-accent text-white font-sans uppercase text-sm tracking-widest hover:bg-black dark:hover:bg-gray-700 transition-colors">

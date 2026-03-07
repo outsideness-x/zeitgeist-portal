@@ -56,7 +56,7 @@ export default function TeamPage() {
                   className="object-cover filter grayscale group-hover:grayscale-0 transition-all duration-500"
                 />
               ) : (
-                <div className="w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
+                <div className="w-full h-full bg-gray-200 dark:bg-card-bg flex items-center justify-center">
                   <span className="text-gray-400 text-2xl">?</span>
                 </div>
               )}

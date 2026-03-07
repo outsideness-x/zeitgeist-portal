@@ -104,7 +104,7 @@ export const ImageCarousel = ({ images, alt }: ImageCarouselProps): JSX.Element 
           type="button"
           onClick={goPrev}
           aria-label="предыдущее изображение"
-          className="absolute left-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-sepia bg-paper/80 text-ink transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-gray-700 dark:bg-black/70 dark:text-gray-200"
+          className="absolute left-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-sepia bg-paper/80 text-ink transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-gray-700 dark:bg-[#121212]/70 dark:text-gray-200"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
@@ -115,14 +115,14 @@ export const ImageCarousel = ({ images, alt }: ImageCarouselProps): JSX.Element 
           type="button"
           onClick={goNext}
           aria-label="следующее изображение"
-          className="absolute right-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-sepia bg-paper/80 text-ink transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-gray-700 dark:bg-black/70 dark:text-gray-200"
+          className="absolute right-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-sepia bg-paper/80 text-ink transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-gray-700 dark:bg-[#121212]/70 dark:text-gray-200"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
           </svg>
         </button>
 
-        <div className="absolute right-3 top-3 rounded border border-sepia bg-paper/80 px-2 py-1 text-xs font-sans dark:border-gray-700 dark:bg-black/70">
+        <div className="absolute right-3 top-3 rounded border border-sepia bg-paper/80 px-2 py-1 text-xs font-sans dark:border-gray-700 dark:bg-[#121212]/70">
           {activeIndex + 1} / {images.length}
         </div>
       </div>

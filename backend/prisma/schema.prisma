@@ -42,15 +42,36 @@ enum ReactionType {
   CELEBRATE
 }
 
+enum AuthProvider {
+  GOOGLE
+}
+
+enum PreAuthPurpose {
+  LOGIN_2FA
+  LINK_GOOGLE
+}
+
+enum OneTimeCodePurpose {
+  LOGIN_2FA
+  LINK_GOOGLE
+  ENABLE_2FA
+  DISABLE_2FA
+}
+
 model User {
   id              String         @id @default(cuid())
   name            String
   email           String         @unique
   passwordHash    String
+  twoFactorEmailEnabled    Boolean        @default(false)
+  twoFactorEmailVerifiedAt DateTime?
   role            Role           @default(READER)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   sessions        Session[]
+  accounts        Account[]
+  preAuthSessions PreAuthSession[]
+  oneTimeCodes    OneTimeCode[]
   submissions     Submission[]   @relation("submission_author")
   authoredArticles Article[]     @relation("article_author")
   bookmarks       Bookmark[]
@@ -71,6 +92,81 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
+}
+
+model Account {
+  id                String       @id @default(cuid())
+  userId            String
+  provider          AuthProvider
+  providerAccountId String
+  email             String
+  createdAt         DateTime     @default(now())
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([email])
+}
+
+model OAuthState {
+  id           String    @id @default(cuid())
+  stateHash    String    @unique
+  redirectPath String?
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  ip           String?
+  userAgent    String?
+
+  @@index([expiresAt])
+}
+
+model PreAuthSession {
+  id                  String        @id @default(cuid())
+  tokenHash           String        @unique
+  userId              String
+  purpose             PreAuthPurpose
+  redirectPath        String?
+  provider            AuthProvider?
+  providerAccountId   String?
+  providerEmail       String?
+  providerEmailVerified Boolean?
+  createdAt           DateTime      @default(now())
+  expiresAt           DateTime
+  consumedAt          DateTime?
+  ip                  String?
+  userAgent           String?
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codes               OneTimeCode[]
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model OneTimeCode {
+  id               String             @id @default(cuid())
+  userId           String
+  preAuthSessionId String?
+  purpose          OneTimeCodePurpose
+  codeHash         String
+  nonce            String
+  createdAt        DateTime           @default(now())
+  expiresAt        DateTime
+  attempts         Int                @default(0)
+  maxAttempts      Int                @default(5)
+  consumedAt       DateTime?
+  resendCount      Int                @default(0)
+  lastSentAt       DateTime
+  blockedUntil     DateTime?
+  ip               String?
+  userAgent        String?
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preAuthSession   PreAuthSession?    @relation(fields: [preAuthSessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([preAuthSessionId])
   @@index([expiresAt])
 }
 

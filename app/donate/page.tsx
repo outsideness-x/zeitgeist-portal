@@ -17,10 +17,10 @@ export default function DonatePage() {
       </div>
 
       <section className="relative mx-auto mt-10 max-w-3xl overflow-hidden border border-sepia bg-white/90 p-6 shadow-lg transition-colors dark:border-gray-700 dark:bg-card-bg sm:p-8">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sepia/50 via-transparent to-transparent dark:from-gray-800/40" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sepia/50 via-transparent to-transparent dark:from-[#121212]/40" />
 
         <div className="relative grid gap-8 md:grid-cols-[minmax(0,340px)_1fr] md:items-center">
-          <div className="mx-auto w-full max-w-[320px] rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-black/50">
+          <div className="mx-auto w-full max-w-[320px] rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-[#121212]/50">
             <Image
               src="/donate/ozon-bank-qr.png"
               alt="QR-код для перевода в Озон-Банк"
@@ -35,7 +35,7 @@ export default function DonatePage() {
             <p className="font-sans text-xs uppercase tracking-widest text-accent">Поддержка проекта</p>
             <h2 className="font-display text-3xl text-ink dark:text-gray-100">Перевод для Zeitgeist</h2>
 
-            <div className="rounded-lg border border-sepia bg-paper/80 px-4 py-4 dark:border-gray-700 dark:bg-black/40">
+            <div className="rounded-lg border border-sepia bg-paper/80 px-4 py-4 dark:border-gray-700 dark:bg-[#121212]/40">
               <p className="font-sans text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">
                 Номер карты
               </p>

@@ -75,7 +75,7 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
 
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <span
-                    className="inline-block max-w-[72%] truncate text-xs font-bold bg-ink text-paper dark:bg-gray-800 dark:text-gray-200 px-2 py-1"
+                    className="inline-block max-w-[72%] truncate text-xs font-bold bg-ink text-paper dark:bg-card-bg dark:text-gray-200 px-2 py-1"
                     title={`ID_ФАЙЛА: ${article.id.toUpperCase()}`}
                   >
                     ID_ФАЙЛА: {article.id.toUpperCase()}

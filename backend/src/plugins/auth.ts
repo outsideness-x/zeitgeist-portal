@@ -4,8 +4,9 @@ import type { Role } from '@prisma/client';
 import { getEnv } from '../config/env.js';
 import { hashToken } from '../lib/auth.js';
 
-const SESSION_COOKIE_NAME = 'zg_session';
-const CSRF_COOKIE_NAME = 'zg_csrf';
+export const SESSION_COOKIE_NAME = 'zg_session';
+export const CSRF_COOKIE_NAME = 'zg_csrf';
+export const PREAUTH_COOKIE_NAME = 'zg_preauth';
 
 export const authPlugin = fp(async (app) => {
   const env = getEnv();
@@ -50,6 +51,7 @@ export const authPlugin = fp(async (app) => {
   app.decorate('authConfig', {
     sessionCookieName: SESSION_COOKIE_NAME,
     csrfCookieName: CSRF_COOKIE_NAME,
+    preAuthCookieName: PREAUTH_COOKIE_NAME,
     csrfHeaderName: env.CSRF_HEADER_NAME,
   });
 });

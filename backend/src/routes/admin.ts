@@ -2,8 +2,10 @@ import { Prisma } from '@prisma/client';
 import type { ArticleSection, SubmissionStatus } from '@prisma/client';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { getEnv } from '../config/env.js';
 import { writeAuditLog } from '../lib/audit.js';
 import { normalizePage } from '../lib/pagination.js';
+import { createStorageClient, deleteStoredObject } from '../lib/storage.js';
 import { createPublisher } from '../publishers/index.js';
 import type { PublishSubmissionResult } from '../publishers/types.js';
 import { assertTransition, canTransitionSubmission } from '../lib/submission-workflow.js';
@@ -86,6 +88,17 @@ type ApproveActionResult =
     code: 'submission_status_conflict' | 'submission_missing_author' | 'submission_missing_file';
   };
 
+type DeleteActionResult =
+  | {
+    kind: 'deleted';
+    submissionId: string;
+    previousStatus: SubmissionStatus;
+    storageKeys: string[];
+  }
+  | {
+    kind: 'not_found';
+  };
+
 const lockSubmissionForUpdate = async (tx: Prisma.TransactionClient, submissionId: string) => {
   // this row lock serializes concurrent admin actions for the same submission
   const rows = await tx.$queryRaw<LockedSubmissionRow[]>`
@@ -103,6 +116,8 @@ const lockSubmissionForUpdate = async (tx: Prisma.TransactionClient, submissionI
 };
 
 export const registerAdminRoutes = async (app: FastifyInstance) => {
+  const env = getEnv();
+  const storageClient = createStorageClient(env);
   const publisher = createPublisher();
 
   app.get('/api/admin/submissions', {
@@ -691,5 +706,99 @@ export const registerAdminRoutes = async (app: FastifyInstance) => {
     }
 
     reply.send({ submission: actionResult.submission });
+  });
+
+  app.delete('/api/admin/submissions/:id', {
+    preHandler: [requireAuth, requireCsrf, requireRoles('ADMIN')],
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
+    if (!request.auth) {
+      return;
+    }
+
+    const params = z.object({ id: z.string().min(1) }).safeParse(request.params);
+    if (!params.success) {
+      reply.code(400).send({ error: 'bad_request', message: 'invalid submission id' });
+      return;
+    }
+
+    const actionResult = await app.prisma.$transaction<DeleteActionResult>(async (tx) => {
+      const lockedSubmission = await lockSubmissionForUpdate(tx, params.data.id);
+
+      if (!lockedSubmission) {
+        return { kind: 'not_found' };
+      }
+
+      const files = await tx.submissionFile.findMany({
+        where: {
+          submissionId: lockedSubmission.id,
+        },
+        select: {
+          storageKey: true,
+        },
+      });
+
+      await tx.submission.delete({
+        where: {
+          id: lockedSubmission.id,
+        },
+      });
+
+      await writeAuditLog({
+        prisma: tx,
+        actorUserId: request.auth.userId,
+        action: 'submission.delete',
+        entityType: 'submission',
+        entityId: lockedSubmission.id,
+        metadata: {
+          previousStatus: lockedSubmission.status,
+          filesCount: files.length,
+        },
+      });
+
+      return {
+        kind: 'deleted',
+        submissionId: lockedSubmission.id,
+        previousStatus: lockedSubmission.status,
+        storageKeys: files.map((file) => file.storageKey),
+      };
+    });
+
+    if (actionResult.kind === 'not_found') {
+      reply.code(404).send({ error: 'not_found', message: 'submission not found' });
+      return;
+    }
+
+    const deleteResults = await Promise.allSettled(actionResult.storageKeys.map((storageKey) => {
+      return deleteStoredObject({
+        client: storageClient,
+        bucket: env.S3_BUCKET,
+        key: storageKey,
+      });
+    }));
+
+    deleteResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        return;
+      }
+
+      request.log.warn({
+        requestId: request.id,
+        submissionId: actionResult.submissionId,
+        storageKey: actionResult.storageKeys[index],
+        err: result.reason,
+      }, 'submission deleted but failed to remove stored file');
+    });
+
+    reply.send({
+      deleted: true,
+      submissionId: actionResult.submissionId,
+      previousStatus: actionResult.previousStatus,
+    });
   });
 };

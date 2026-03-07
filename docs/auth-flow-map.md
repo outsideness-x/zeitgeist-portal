@@ -10,9 +10,33 @@
 ## login flow
 - ui entry: `components/AuthModal.tsx` in login mode.
 - request: `AuthProvider.login()` calls `POST /api/auth/login` through `backendRequest`.
-- backend response: `user` object and `csrfToken`; cookies are refreshed.
-- state update: `authStateReducer` receives `set-session`.
+- backend response:
+  - standard path: `user` object and `csrfToken`; cookies are refreshed.
+  - 2fa path: `requiresTwoFactor=true` and short-lived preauth challenge metadata.
+- state update:
+  - standard path: `authStateReducer` receives `set-session`.
+  - 2fa path: modal switches to code verification step.
 - persistence: cookie session remains source of truth on backend.
+
+## google oauth flow
+- ui entry: `components/AuthModal.tsx` button `Continue with Google`.
+- start endpoint: `POST /api/auth/google/start` generates Google auth URL with strict state tracking.
+- callback endpoint: `GET /api/auth/google/callback` validates state, exchanges code, resolves account.
+- account resolution:
+  - existing linked account: login (or step-up 2fa if enabled).
+  - existing password user with same email: no silent linking; preauth link challenge + email code.
+  - new email: create user + account(provider=`GOOGLE`).
+- finalization: callback sets regular `zg_session`/`zg_csrf` or redirects with `auth=2fa` for step-up.
+
+## email 2fa flow
+- preauth storage: `PreAuthSession` table + `zg_preauth` httpOnly cookie (short ttl).
+- code storage: `OneTimeCode` table with hashed code, nonce, expiry, attempts, resend counters, lock window.
+- endpoints:
+  - `GET /api/auth/2fa/status`
+  - `POST /api/auth/2fa/send` (`/resend` alias)
+  - `POST /api/auth/2fa/verify`
+- login/link path: code verification consumes preauth and only then issues normal session cookies.
+- settings path: enable/disable 2fa requires authenticated csrf-protected send+verify code steps.
 
 ## logout flow
 - ui entry: `components/Header.tsx` logout action.

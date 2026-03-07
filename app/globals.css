@@ -16,11 +16,11 @@
 
 .dark {
   /* --- DARK MODE (Deep Cyber/Research) --- */
-  --background: #09090b; 
+  --background: #121212; 
   --foreground: #e4e4e7; 
   --accent: #f87171; 
   --sepia: #27272a; 
-  --card-bg: #18181b; 
+  --card-bg: #121212; 
 }
 
 body {

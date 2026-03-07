@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
-import { backendRequest } from '@/services/backend/client';
+import { backendRequest, getBackendBaseUrl } from '@/services/backend/client';
 
 type SubmissionCreateResponse = {
   submission: {
@@ -32,7 +31,6 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'completed'>('idle');
-  const [submittedId, setSubmittedId] = useState<string | null>(null);
 
   const titleId = 'research-title';
   const keywordsId = 'research-keywords';
@@ -74,11 +72,41 @@ export default function UploadPage() {
     );
   }, [abstract, file, keywords, title]);
 
-  const uploadFileByPresignedUrl = async (uploadUrl: string, selectedFile: File, contentType: string) => {
+  const toXhrError = (xhr: XMLHttpRequest, fallback: string) => {
+    const contentType = xhr.getResponseHeader('content-type') ?? '';
+    const responseText = xhr.responseText?.trim();
+
+    if (responseText && contentType.includes('application/json')) {
+      try {
+        const payload = JSON.parse(responseText) as { message?: unknown };
+        if (typeof payload.message === 'string' && payload.message.trim().length > 0) {
+          return new Error(payload.message);
+        }
+      } catch {
+        return new Error(fallback);
+      }
+    }
+
+    return new Error(fallback);
+  };
+
+  const uploadFileWithXhr = async (args: {
+    method: 'POST' | 'PUT';
+    url: string;
+    selectedFile: File;
+    contentType: string;
+    withCredentials?: boolean;
+    headers?: Record<string, string>;
+  }) => {
     await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', contentType);
+      xhr.open(args.method, args.url);
+      xhr.withCredentials = !!args.withCredentials;
+      xhr.setRequestHeader('Content-Type', args.contentType);
+
+      Object.entries(args.headers ?? {}).forEach(([header, value]) => {
+        xhr.setRequestHeader(header, value);
+      });
 
       // this progress path is wired to real object storage upload bytes
       xhr.upload.onprogress = (event) => {
@@ -94,14 +122,49 @@ export default function UploadPage() {
           resolve();
           return;
         }
-        reject(new Error(`upload failed with status ${xhr.status}`));
+        reject(toXhrError(xhr, `upload failed with status ${xhr.status}`));
       };
 
       xhr.onerror = () => {
         reject(new Error('upload failed due to a network error'));
       };
 
-      xhr.send(selectedFile);
+      xhr.send(args.selectedFile);
+    });
+  };
+
+  const uploadFileByPresignedUrl = async (uploadUrl: string, selectedFile: File, contentType: string) => {
+    await uploadFileWithXhr({
+      method: 'PUT',
+      url: uploadUrl,
+      selectedFile,
+      contentType,
+    });
+  };
+
+  const uploadFileViaBackendRelay = async (args: {
+    submissionId: string;
+    storageKey: string;
+    selectedFile: File;
+    contentType: string;
+    csrf: string;
+  }) => {
+    const backendBaseUrl = getBackendBaseUrl();
+    if (!backendBaseUrl) {
+      throw new Error('service is temporarily unavailable. please try again.');
+    }
+
+    const uploadPath = `/api/submissions/${args.submissionId}/upload/file?storageKey=${encodeURIComponent(args.storageKey)}`;
+
+    await uploadFileWithXhr({
+      method: 'POST',
+      url: `${backendBaseUrl}${uploadPath}`,
+      selectedFile: args.selectedFile,
+      contentType: args.contentType,
+      withCredentials: true,
+      headers: {
+        'x-csrf-token': args.csrf,
+      },
     });
   };
 
@@ -171,7 +234,23 @@ export default function UploadPage() {
         },
       });
 
-      await uploadFileByPresignedUrl(initResponse.uploadUrl, file, initResponse.requiredContentType);
+      try {
+        await uploadFileByPresignedUrl(initResponse.uploadUrl, file, initResponse.requiredContentType);
+      } catch (directUploadError) {
+        const uploadErrorMessage = directUploadError instanceof Error ? directUploadError.message : 'unknown';
+        console.warn('[upload] direct upload failed, retrying via backend relay', {
+          submissionId: createResponse.submission.id,
+          status: uploadErrorMessage,
+        });
+
+        await uploadFileViaBackendRelay({
+          submissionId: createResponse.submission.id,
+          storageKey: initResponse.storageKey,
+          selectedFile: file,
+          contentType: initResponse.requiredContentType,
+          csrf: csrfToken,
+        });
+      }
 
       await backendRequest({
         path: `/api/submissions/${createResponse.submission.id}/upload/complete`,
@@ -183,15 +262,16 @@ export default function UploadPage() {
         },
       });
 
-      setSubmittedId(createResponse.submission.id);
       setUploadStatus('completed');
       setProgress(100);
       idempotencyKeyRef.current = null;
       idempotencyFingerprintRef.current = null;
     } catch (error) {
+      const safeErrorMessage = error instanceof Error ? error.message : 'не удалось отправить рукопись.';
+      console.error('[upload] manuscript upload failed', { message: safeErrorMessage });
       setUploadStatus('idle');
       setProgress(0);
-      setErrorMessage(error instanceof Error ? error.message : 'не удалось отправить рукопись.');
+      setErrorMessage(safeErrorMessage);
     } finally {
       createLockRef.current = false;
     }
@@ -215,7 +295,7 @@ export default function UploadPage() {
         </div>
       )}
 
-      <form onSubmit={handleUpload} className="bg-white p-8 border border-sepia shadow-lg">
+      <form onSubmit={handleUpload} className="bg-card-bg p-8 border border-sepia shadow-lg">
         <div className="mb-6">
           <label htmlFor={titleId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-2 text-gray-500">название исследования</label>
           <input
@@ -264,7 +344,7 @@ export default function UploadPage() {
             value={abstract}
             onChange={(e) => setAbstract(e.target.value)}
             rows={6}
-            className="w-full bg-stone-50 border border-gray-200 p-4 font-serif text-gray-700 focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full border-b-2 border-gray-200 bg-transparent py-2 font-serif text-ink transition-colors outline-none focus:border-accent focus-visible:ring-1 focus-visible:ring-accent dark:text-gray-200"
             placeholder="введите аннотацию..."
             required
             minLength={40}
@@ -274,7 +354,7 @@ export default function UploadPage() {
 
         <div className="mb-8">
           <label htmlFor={fileId} className="block text-sm font-sans font-bold uppercase tracking-wider mb-4 text-gray-500">загрузите pdf</label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-accent transition-colors cursor-pointer relative bg-stone-50">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-accent transition-colors cursor-pointer relative bg-transparent">
             <input
               id={fileId}
               type="file"
@@ -284,10 +364,10 @@ export default function UploadPage() {
               required
             />
             <div className="pointer-events-none">
-              <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+              <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <p className="mt-2 text-sm text-gray-600 font-sans">
+              <p className="mt-2 text-sm text-gray-600 font-sans dark:text-gray-300">
                 {file ? file.name : 'перетащите файл или нажмите, чтобы выбрать pdf'}
               </p>
             </div>
@@ -321,16 +401,8 @@ export default function UploadPage() {
 
         {uploadStatus === 'completed' && (
           <p className="mb-8 rounded-sm border border-green-600 bg-green-50 px-4 py-3 text-green-800" role="status">
-            материал отправлен и загружен. id заявки: {submittedId}
+            Материал отправлен и загружен
           </p>
-        )}
-
-        {submittedId && (
-          <div className="mb-8 text-sm text-gray-600">
-            <Link href="/account" className="text-accent underline">
-              открыть кабинет заявок
-            </Link>
-          </div>
         )}
 
         <button

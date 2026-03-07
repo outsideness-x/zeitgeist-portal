@@ -61,28 +61,13 @@ type SubmissionDetailResponse = {
   }>;
 };
 
-const statusOptions = [
-  '',
-  'submitted',
-  'in_review',
-  'needs_changes',
-  'resubmitted',
-  'approved',
-  'published',
-  'rejected',
-] as const;
-
-const sectionOptions = ['journal', 'research', 'nova'] as const;
-
 export default function AdminPage() {
   const { user, loading, csrfToken } = useAuth();
-  const [statusFilter, setStatusFilter] = useState('');
   const [queue, setQueue] = useState<SubmissionQueueItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SubmissionDetailResponse | null>(null);
   const [reviewMessage, setReviewMessage] = useState('');
   const [rejectReason, setRejectReason] = useState('');
-  const [approveSection, setApproveSection] = useState<(typeof sectionOptions)[number]>('journal');
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -93,9 +78,6 @@ export default function AdminPage() {
     const query = new URLSearchParams();
     query.set('page', '1');
     query.set('pageSize', '50');
-    if (statusFilter) {
-      query.set('status', statusFilter);
-    }
 
     const response = await backendRequest<QueueResponse>({
       path: `/api/admin/submissions?${query.toString()}`,
@@ -130,7 +112,7 @@ export default function AdminPage() {
 
     void run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, statusFilter]);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!isAdmin || !selectedId) {
@@ -149,7 +131,7 @@ export default function AdminPage() {
     void run();
   }, [isAdmin, selectedId]);
 
-  const runAction = async (action: 'request-changes' | 'approve' | 'reject') => {
+  const runAction = async (action: 'request-changes' | 'reject') => {
     if (!selectedId || !csrfToken) {
       return;
     }
@@ -171,17 +153,6 @@ export default function AdminPage() {
         setReviewMessage('');
       }
 
-      if (action === 'approve') {
-        await backendRequest({
-          path: `/api/admin/submissions/${selectedId}/approve`,
-          method: 'POST',
-          csrfToken,
-          body: {
-            section: approveSection,
-          },
-        });
-      }
-
       if (action === 'reject') {
         await backendRequest({
           path: `/api/admin/submissions/${selectedId}/reject`,
@@ -201,6 +172,50 @@ export default function AdminPage() {
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'не удалось выполнить действие');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteSubmissionPermanently = async () => {
+    if (!selectedId || !csrfToken) {
+      return;
+    }
+
+    const submissionTitle = detail?.submission.title ?? 'эту заявку';
+    const confirmed = window.confirm(`Удалить "${submissionTitle}" навсегда? Это действие необратимо.`);
+    if (!confirmed) {
+      return;
+    }
+
+    setBusy(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      await backendRequest({
+        path: `/api/admin/submissions/${selectedId}`,
+        method: 'DELETE',
+        csrfToken,
+      });
+
+      const queueResponse = await backendRequest<QueueResponse>({
+        path: '/api/admin/submissions?page=1&pageSize=50',
+      });
+
+      setQueue(queueResponse.items);
+      const nextId = queueResponse.items[0]?.id ?? null;
+      setSelectedId(nextId);
+
+      if (nextId) {
+        await loadDetail(nextId);
+      } else {
+        setDetail(null);
+      }
+
+      setSuccessMessage('заявка удалена навсегда');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'не удалось удалить заявку');
     } finally {
       setBusy(false);
     }
@@ -234,68 +249,54 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16">
-      <div className="mb-8 flex items-end justify-between">
-        <h1 className="font-display text-4xl">admin cabinet</h1>
-        <div className="flex items-center gap-2 text-sm">
-          <label htmlFor="status-filter" className="text-gray-600">статус</label>
-          <select
-            id="status-filter"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="border border-sepia px-3 py-2"
-          >
-            <option value="">все</option>
-            {statusOptions.filter(Boolean).map((status) => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
-        </div>
+    <div className="mx-auto max-w-7xl px-4 py-16 text-ink">
+      <div className="mb-8">
+        <h1 className="font-display text-4xl">Кабинет админа</h1>
       </div>
 
       {errorMessage && <p className="mb-4 text-sm text-red-600">{errorMessage}</p>}
       {successMessage && <p className="mb-4 text-sm text-green-700">{successMessage}</p>}
 
-      <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
-        <aside className="border border-sepia bg-white">
+      <div className="grid items-start gap-6 lg:grid-cols-[340px_1fr]">
+        <aside className="min-w-0 overflow-hidden border border-sepia bg-card-bg">
           <ul>
             {queue.map((item) => (
               <li key={item.id}>
                 <button
                   type="button"
                   onClick={() => setSelectedId(item.id)}
-                  className={`w-full border-b border-sepia/50 px-4 py-3 text-left ${selectedId === item.id ? 'bg-sepia/40' : 'hover:bg-sepia/20'}`}
+                  className={`min-w-0 w-full border-b border-sepia/50 px-4 py-3 text-left ${selectedId === item.id ? 'bg-sepia/40' : 'hover:bg-sepia/20'}`}
                 >
-                  <p className="font-serif text-sm">{item.title}</p>
-                  <p className="text-xs text-gray-500">{item.author.name} · {item.status.toLowerCase()}</p>
+                  <p className="font-serif text-sm [overflow-wrap:anywhere]">{item.title}</p>
+                  <p className="text-xs text-ink/70 [overflow-wrap:anywhere]">{item.author.name} · {item.status.toLowerCase()}</p>
                 </button>
               </li>
             ))}
           </ul>
         </aside>
 
-        <section className="border border-sepia bg-white p-6">
-          {!detail && <p className="text-sm text-gray-500">выберите заявку из очереди.</p>}
+        <section className="min-w-0 overflow-hidden border border-sepia bg-card-bg p-6">
+          {!detail && <p className="text-sm text-ink/70">Выберите заявку из очереди</p>}
 
           {detail && (
             <div className="space-y-6">
               <header>
-                <h2 className="font-display text-3xl">{detail.submission.title}</h2>
-                <p className="text-sm text-gray-600">
+                <h2 className="font-display text-3xl [overflow-wrap:anywhere]">{detail.submission.title}</h2>
+                <p className="text-sm text-ink/70 [overflow-wrap:anywhere]">
                   {detail.submission.author.name} ({detail.submission.author.email}) · {detail.submission.status.toLowerCase()}
                 </p>
-                <p className="mt-2 text-sm text-gray-700">{detail.submission.abstract}</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-ink/85 [overflow-wrap:anywhere]">{detail.submission.abstract}</p>
               </header>
 
               <section>
-                <h3 className="mb-2 text-sm uppercase tracking-wider text-gray-500">метаданные</h3>
-                <p className="text-sm">ключевые слова: {detail.submission.keywords.join(', ')}</p>
+                <h3 className="mb-2 text-sm uppercase tracking-wider text-ink/70">метаданные</h3>
+                <p className="text-sm [overflow-wrap:anywhere]">ключевые слова: {detail.submission.keywords.join(', ')}</p>
                 <p className="text-sm">версий файла: {detail.submission.files.length}</p>
                 {detail.submission.files[0] && (
                   <button
                     type="button"
                     onClick={() => void downloadSubmissionPdf()}
-                    className="mt-3 border border-sepia px-3 py-2 text-xs uppercase tracking-wider hover:border-accent"
+                    className="mt-3 border border-sepia bg-card-bg px-3 py-2 text-xs uppercase tracking-wider hover:border-accent"
                   >
                     скачать pdf
                   </button>
@@ -303,80 +304,67 @@ export default function AdminPage() {
               </section>
 
               <section className="space-y-3 border-t border-sepia/50 pt-4">
-                <h3 className="text-sm uppercase tracking-wider text-gray-500">действия редактора</h3>
+                <h3 className="text-sm uppercase tracking-wider text-ink/70">действия редактора</h3>
 
                 <div>
-                  <label htmlFor="review-message" className="mb-1 block text-xs text-gray-500">запросить правки</label>
+                  <label htmlFor="review-message" className="mb-1 block text-xs text-ink/70">запросить правки</label>
                   <textarea
                     id="review-message"
                     value={reviewMessage}
                     onChange={(event) => setReviewMessage(event.target.value)}
                     rows={3}
-                    className="w-full border border-sepia p-2 text-sm"
+                    className="w-full border border-sepia bg-card-bg p-2 text-sm text-ink placeholder:text-ink/45"
                     placeholder="опишите, что нужно исправить"
                   />
                   <button
                     type="button"
                     onClick={() => void runAction('request-changes')}
                     disabled={busy || reviewMessage.trim().length < 3}
-                    className="mt-2 border border-sepia px-3 py-2 text-xs uppercase tracking-wider hover:border-accent disabled:opacity-50"
+                    className="mt-2 border border-sepia bg-card-bg px-3 py-2 text-xs uppercase tracking-wider hover:border-accent disabled:opacity-50"
                   >
                     отправить правки
                   </button>
                 </div>
 
-                <div className="flex flex-wrap items-end gap-2">
-                  <div>
-                    <label htmlFor="approve-section" className="mb-1 block text-xs text-gray-500">раздел публикации</label>
-                    <select
-                      id="approve-section"
-                      value={approveSection}
-                      onChange={(event) => setApproveSection(event.target.value as (typeof sectionOptions)[number])}
-                      className="border border-sepia px-3 py-2 text-sm"
-                    >
-                      {sectionOptions.map((section) => (
-                        <option key={section} value={section}>{section}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void runAction('approve')}
-                    disabled={busy}
-                    className="border border-green-700 bg-green-700 px-3 py-2 text-xs uppercase tracking-wider text-white disabled:opacity-50"
-                  >
-                    approve and publish
-                  </button>
-                </div>
-
                 <div>
-                  <label htmlFor="reject-reason" className="mb-1 block text-xs text-gray-500">причина отклонения</label>
+                  <label htmlFor="reject-reason" className="mb-1 block text-xs text-ink/70">причина отклонения</label>
                   <textarea
                     id="reject-reason"
                     value={rejectReason}
                     onChange={(event) => setRejectReason(event.target.value)}
                     rows={2}
-                    className="w-full border border-sepia p-2 text-sm"
+                    className="w-full border border-sepia bg-card-bg p-2 text-sm text-ink placeholder:text-ink/45"
                     placeholder="опционально"
                   />
                   <button
                     type="button"
                     onClick={() => void runAction('reject')}
                     disabled={busy}
-                    className="mt-2 border border-red-700 px-3 py-2 text-xs uppercase tracking-wider text-red-700 disabled:opacity-50"
+                    className="mt-2 border border-sepia bg-sepia/30 px-3 py-2 text-xs uppercase tracking-wider text-ink disabled:opacity-50"
                   >
                     reject
+                  </button>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => void deleteSubmissionPermanently()}
+                    disabled={busy}
+                    className="border border-red-300 bg-red-50 px-3 py-2 text-xs uppercase tracking-wider text-red-700 hover:border-red-500 disabled:opacity-50"
+                  >
+                    удалить навсегда
                   </button>
                 </div>
               </section>
 
               <section>
-                <h3 className="mb-2 text-sm uppercase tracking-wider text-gray-500">история аудита</h3>
+                <h3 className="mb-2 text-sm uppercase tracking-wider text-ink/70">история аудита</h3>
                 <ul className="space-y-2 text-sm">
                   {detail.auditLog.map((entry) => (
                     <li key={entry.id} className="border-b border-sepia/20 pb-2">
-                      <p>{entry.action}</p>
-                      <p className="text-xs text-gray-500">{new Date(entry.createdAt).toLocaleString()}</p>
+                      <p className="[overflow-wrap:anywhere]">{entry.action}</p>
+                      <p className="text-xs text-ink/70">{new Date(entry.createdAt).toLocaleString()}</p>
                     </li>
                   ))}
                 </ul>

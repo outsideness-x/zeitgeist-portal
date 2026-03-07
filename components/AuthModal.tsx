@@ -11,12 +11,16 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { login, register } = useAuth();
+
   const [mode, setMode] = useState<AuthMode>(AuthMode.LOGIN);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
   const emailInputRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
   const subtitleId = useId();
@@ -37,6 +41,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', handleKeyDown);
+
     emailInputRef.current?.focus();
 
     return () => {
@@ -47,21 +52,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const resetModalState = () => {
+    setPassword('');
+    setEmail('');
+    setName('');
+    setErrorMessage('');
+  };
+
+  const handleCredentialsSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setErrorMessage('');
 
     try {
       if (mode === AuthMode.LOGIN) {
-        await login(email, password);
+        const callbackPath = `${window.location.pathname}${window.location.search}`;
+        await login(email, password, callbackPath);
       } else {
         await register(name, email, password);
       }
 
-      setPassword('');
-      setEmail('');
-      setName('');
+      resetModalState();
       onClose();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Ошибка авторизации');
@@ -88,7 +99,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         aria-describedby={subtitleId}
         className="relative bg-paper w-full max-w-md p-8 shadow-2xl border border-sepia"
       >
-        <button 
+        <button
           type="button"
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
@@ -103,13 +114,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           {mode === AuthMode.LOGIN ? 'Войдите в свою исследовательскую библиотеку' : 'Начните ваше путешествие по архивам'}
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleCredentialsSubmit} className="space-y-4">
           {mode === AuthMode.REGISTER && (
             <div>
               <label htmlFor={nameInputId} className="block text-xs font-sans font-bold uppercase tracking-wider mb-1 text-gray-500">Полное имя</label>
-              <input 
+              <input
                 id={nameInputId}
-                type="text" 
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-white border border-gray-300 px-4 py-2 focus:outline-none focus:border-accent focus-visible:ring-1 focus-visible:ring-accent font-serif"
@@ -117,13 +128,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               />
             </div>
           )}
-          
+
           <div>
             <label htmlFor={emailInputId} className="block text-xs font-sans font-bold uppercase tracking-wider mb-1 text-gray-500">Эл. почта</label>
-            <input 
+            <input
               ref={emailInputRef}
               id={emailInputId}
-              type="email" 
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-white border border-gray-300 px-4 py-2 focus:outline-none focus:border-accent focus-visible:ring-1 focus-visible:ring-accent font-serif"
@@ -133,9 +144,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
           <div>
             <label htmlFor={passwordInputId} className="block text-xs font-sans font-bold uppercase tracking-wider mb-1 text-gray-500">Пароль</label>
-            <input 
+            <input
               id={passwordInputId}
-              type="password" 
+              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-white border border-gray-300 px-4 py-2 focus:outline-none focus:border-accent focus-visible:ring-1 focus-visible:ring-accent font-serif"
@@ -143,8 +154,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
             className="w-full bg-accent text-white py-3 font-sans uppercase tracking-widest text-sm hover:bg-black dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
           >
@@ -157,12 +168,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         )}
 
         <div className="mt-6 text-center">
-          <button 
+          <button
             type="button"
             onClick={() => setMode(mode === AuthMode.LOGIN ? AuthMode.REGISTER : AuthMode.LOGIN)}
             className="text-sm font-sans text-gray-500 hover:text-accent underline underline-offset-4"
           >
-            {mode === AuthMode.LOGIN ? "Нет аккаунта? Зарегистрируйтесь" : "Уже есть аккаунт? Войдите"}
+            {mode === AuthMode.LOGIN ? 'Нет аккаунта? Зарегистрируйтесь' : 'Уже есть аккаунт? Войдите'}
           </button>
         </div>
       </div>

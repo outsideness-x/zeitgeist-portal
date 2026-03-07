@@ -7,6 +7,11 @@ import { Providers } from "./providers"; // provider import
 export const metadata: Metadata = {
   title: "Zeitgeist | Портал востоковедческих исследований",
   description: "Цифровой портал для исследователей-востоковедов.",
+  icons: {
+    icon: "/other/tab-icon.jpg",
+    shortcut: "/other/tab-icon.jpg",
+    apple: "/other/tab-icon.jpg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
