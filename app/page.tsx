@@ -23,7 +23,7 @@ export default async function Home() {
   return (
     <div className="pb-20">
       <section className="relative min-h-[80vh] overflow-hidden flex items-center justify-center px-4 py-20">
-        <div className="absolute inset-0 scale-105 blur-sm bg-[radial-gradient(circle_at_16%_20%,rgba(139,58,58,0.35),transparent_42%),radial-gradient(circle_at_85%_28%,rgba(24,24,24,0.65),transparent_48%),linear-gradient(140deg,#050505_0%,#14100f_42%,#2a1f1b_100%)]" />
+        <div className="absolute inset-0 scale-105 blur-sm bg-[radial-gradient(circle_at_16%_20%,rgba(139,58,58,0.28),transparent_42%),radial-gradient(circle_at_85%_28%,rgba(0,0,0,0.78),transparent_48%),linear-gradient(140deg,#020202_0%,#0d0a09_42%,#1a1311_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
 
         <FadeIn>

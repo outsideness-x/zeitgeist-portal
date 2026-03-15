@@ -47,7 +47,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
         fallbackLabel="обложка недоступна"
       />
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-colors duration-500 group-hover:from-black/95 group-hover:via-black/35" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/35 to-transparent transition-colors duration-500 group-hover:from-black group-hover:via-black/50" />
 
       <div className="absolute left-0 top-0 p-6">
         <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-sans uppercase tracking-[0.18em] ${getBadgeColor(article.type)}`}>
@@ -70,7 +70,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
           Автор: <span className="not-italic font-semibold text-white">{authorName}</span>
         </p>
 
-        <p className="mt-4 max-w-2xl font-serif text-lg font-medium leading-relaxed text-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 line-clamp-3">
+        <p className="mt-4 max-w-2xl font-serif text-xl font-semibold leading-relaxed text-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 line-clamp-3">
           {article.excerpt}
         </p>
       </div>

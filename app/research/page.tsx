@@ -24,33 +24,29 @@ export default async function ResearchPage({ searchParams }: ResearchPageProps) 
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div className="max-w-4xl mx-auto px-4 py-16">
       <div className="text-center mb-16">
         <h1 className="font-display text-5xl mb-4">Каталог исследований</h1>
         <p className="font-serif text-xl text-gray-500">Рецензируемые статьи, архивные находки и академические материалы.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+      <div className="space-y-12">
         {papers.items.length > 0 ? (
-          papers.items.map(paper => (
-            <div key={paper.id} className="bg-white dark:bg-card-bg p-6 border border-sepia dark:border-gray-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
-              <ArticleCard article={paper} routePath="/research" />
+          papers.items.map((paper, idx) => (
+            <div key={paper.id} className={idx !== papers.items.length - 1 ? "border-b border-gray-200 pb-12" : ""}>
+              <ArticleCard article={paper} featured={true} routePath="/research" />
             </div>
           ))
         ) : collectionState === 'error' ? (
-          <div className="md:col-span-2 lg:col-span-3">
-            <EmptyState
-              title="каталог исследований временно недоступен"
-              description="сбой при запросе к ghost. уже опубликованные материалы вернутся без ручных действий после восстановления API."
-            />
-          </div>
+          <EmptyState
+            title="каталог исследований временно недоступен"
+            description="сбой при запросе к ghost. уже опубликованные материалы вернутся без ручных действий после восстановления API."
+          />
         ) : (
-          <div className="md:col-span-2 lg:col-span-3">
-            <EmptyState
-              title="каталог исследований готовится"
-              description="материалы появятся после публикации в ghost."
-            />
-          </div>
+          <EmptyState
+            title="каталог исследований готовится"
+            description="материалы появятся после публикации в ghost."
+          />
         )}
       </div>
 
