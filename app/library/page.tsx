@@ -50,7 +50,7 @@ export default async function LibraryPage() {
                   <p className="font-serif text-sm text-gray-500 dark:text-gray-400 italic mb-3">
                     {book.author}
                   </p>
-                  <p className="font-sans text-xs text-gray-600 dark:text-gray-500 line-clamp-3 leading-relaxed">
+                  <p className="font-sans text-sm text-gray-600 dark:text-gray-500 line-clamp-3 leading-relaxed">
                     {book.description}
                   </p>
                 </div>

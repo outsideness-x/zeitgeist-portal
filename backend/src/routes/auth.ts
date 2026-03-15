@@ -63,11 +63,37 @@ const twoFactorVerifyBodySchema = z.object({
   code: z.string().trim().regex(/^\d{6}$/),
 });
 
+const avatarBodySchema = z.object({
+  avatarDataUrl: z.union([
+    z.string().trim().max(1_500_000).refine((value) => {
+      if (!value.startsWith('data:image/')) {
+        return false;
+      }
+
+      const separator = ';base64,';
+      const separatorIndex = value.indexOf(separator);
+      if (separatorIndex <= 5) {
+        return false;
+      }
+
+      const mimeType = value.slice(5, separatorIndex).toLowerCase();
+      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(mimeType)) {
+        return false;
+      }
+
+      const payload = value.slice(separatorIndex + separator.length);
+      return payload.length > 0;
+    }, 'invalid avatar payload'),
+    z.null(),
+  ]),
+});
+
 const authUserSelect = {
   id: true,
   name: true,
   email: true,
   role: true,
+  avatarDataUrl: true,
   twoFactorEmailEnabled: true,
 } satisfies Prisma.UserSelect;
 
@@ -1093,6 +1119,7 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatarDataUrl: user.avatarDataUrl,
         twoFactorEmailEnabled: user.twoFactorEmailEnabled,
       },
     });
@@ -1745,6 +1772,52 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
     reply.clearCookie(CSRF_COOKIE_NAME, { path: '/' });
     clearPreAuthCookie(reply);
     reply.send({ ok: true });
+  });
+
+  app.put('/api/auth/avatar', {
+    preHandler: [requireCsrf],
+    config: {
+      rateLimit: {
+        max: 20,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
+    if (!request.auth) {
+      return;
+    }
+
+    const parsed = avatarBodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400).send({
+        error: 'bad_request',
+        message: parsed.error.issues[0]?.message ?? 'invalid request body',
+      });
+      return;
+    }
+
+    const user = await app.prisma.user.update({
+      where: {
+        id: request.auth.userId,
+      },
+      data: {
+        avatarDataUrl: parsed.data.avatarDataUrl,
+      },
+      select: authUserSelect,
+    });
+
+    await writeAuditLog({
+      prisma: app.prisma,
+      actorUserId: user.id,
+      action: 'auth.avatar.update',
+      entityType: 'user',
+      entityId: user.id,
+      metadata: {
+        hasAvatar: Boolean(user.avatarDataUrl),
+      },
+    });
+
+    reply.send({ user });
   });
 
   app.get('/api/auth/me', {

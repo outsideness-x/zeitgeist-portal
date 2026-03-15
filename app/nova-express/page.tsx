@@ -91,7 +91,7 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
                   </Link>
                 </h3>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4 border-l-2 border-gray-300 dark:border-gray-700 pl-4 break-words">
+                <p className="text-base text-gray-600 dark:text-gray-400 line-clamp-3 mb-4 border-l-2 border-gray-300 dark:border-gray-700 pl-4 break-words">
                   {article.excerpt}
                 </p>
 

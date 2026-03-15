@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { fetchArticles } from '@/services/content';
 import { ArticleCard } from '@/components/ArticleCard';
 import { EmptyState } from '@/components/EmptyState';
+import { FadeIn } from '@/components/FadeIn';
 import { resolveCollectionVisualState } from '@/services/content/renderPolicy';
 
 export const dynamic = 'force-dynamic';
@@ -21,12 +22,19 @@ export default async function Home() {
 
   return (
     <div className="pb-20">
-      {/* Hero Section - FIXED: Colors for Dark Mode */}
-      <section className="bg-paper text-ink dark:bg-card-bg dark:text-gray-100 py-20 px-4 text-center transition-colors duration-300 border-b border-transparent dark:border-gray-800">
-        <h1 className="font-display text-5xl md:text-7xl mb-6">Zeitgeist</h1>
-        <p className="font-serif text-xl md:text-2xl text-gray-500 dark:text-gray-400 italic max-w-2xl mx-auto">
-          &quot;Дух времени.&quot; Исследуем историю, культуру и рукописи Востока.
-        </p>
+      <section className="relative min-h-[80vh] overflow-hidden flex items-center justify-center px-4 py-20">
+        <div className="absolute inset-0 scale-105 blur-sm bg-[radial-gradient(circle_at_16%_20%,rgba(139,58,58,0.35),transparent_42%),radial-gradient(circle_at_85%_28%,rgba(24,24,24,0.65),transparent_48%),linear-gradient(140deg,#050505_0%,#14100f_42%,#2a1f1b_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
+
+        <FadeIn>
+          <div className="relative z-10 mx-auto max-w-6xl text-center text-white mix-blend-difference">
+            <h1 className="font-display text-[12vw] leading-none tracking-tighter uppercase">Zeitgeist</h1>
+            <p className="mt-8 font-serif text-2xl md:text-4xl font-light italic">
+              &quot;Дух времени.&quot; Исследуем историю, культуру и
+              <span className="text-accent"> рукописи Востока</span>.
+            </p>
+          </div>
+        </FadeIn>
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-10">
@@ -96,7 +104,7 @@ export default async function Home() {
                       <h4 className="font-serif text-lg leading-tight mb-2 group-hover:text-accent transition-colors dark:text-gray-200">
                         <Link href={`/article/${paper.id}`}>{paper.title}</Link>
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{paper.excerpt}</p>
+                      <p className="text-base text-gray-600 dark:text-gray-400 line-clamp-2">{paper.excerpt}</p>
                       <div className="mt-2 flex gap-2">
                         {paper.tags.slice(0, 2).map(tag => (
                           <span key={tag} className="text-[10px] uppercase border border-gray-300 dark:border-gray-700 px-2 py-0.5 text-gray-500 dark:text-gray-400">{tag}</span>

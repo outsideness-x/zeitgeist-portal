@@ -5,6 +5,8 @@ import { LikeButton } from '@/components/LikeButton';
 import { BookmarkButton } from '@/components/BookmarkButton';
 import { ImageCarousel } from '@/components/ImageCarousel';
 import { ContentImage } from '@/components/ContentImage';
+import { buildArticleContentBlocks } from '@/services/content/articleHtmlBlocks';
+import type { ArticleCarouselImage } from '@/types';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -107,10 +109,23 @@ export default async function ArticlePage({ params }: Props) {
   const hasSingleGalleryImage = galleryImages.length === 1;
   const heroImage = hasSingleGalleryImage ? galleryImages[0] : !hasCarousel ? article.feature_image : undefined;
   const safeHtml = article.html ? enhanceFootnoteLinks(sanitizeArticleHtml(article.html)) : '';
+  const carouselItems: ArticleCarouselImage[] = galleryImages.map((src) => ({
+    src,
+    alt: article.title,
+  }));
+  const articleContentBlocks = safeHtml
+    ? article.source === 'ghost'
+      ? buildArticleContentBlocks(safeHtml, article.title)
+      : [{ type: 'html' as const, html: safeHtml }]
+    : [];
 
   return (
     <article className="pb-20 min-h-screen bg-paper dark:bg-card-bg transition-colors duration-300">
-      <div className="bg-paper dark:bg-card-bg py-20 px-4 text-center border-b border-sepia dark:border-gray-800">
+      <div
+        className={`bg-paper dark:bg-card-bg py-20 px-4 text-center ${
+          heroImage ? '' : 'border-b border-sepia dark:border-gray-800'
+        }`}
+      >
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-center gap-2 mb-6">
             <span className={`px-3 py-1 text-xs font-sans uppercase tracking-widest text-white ${article.type === 'nova' ? 'bg-black border border-green-500 text-green-500' : 'bg-accent'}`}>
@@ -156,7 +171,7 @@ export default async function ArticlePage({ params }: Props) {
       </div>
 
       {heroImage && (
-        <div className="w-full h-[50vh] md:h-[70vh] relative overflow-hidden">
+        <div className="relative h-[50vh] w-full overflow-hidden md:h-[70vh]">
            <ContentImage
              src={heroImage}
              alt={article.title}
@@ -166,7 +181,7 @@ export default async function ArticlePage({ params }: Props) {
              fill
              priority
              sizes="100vw"
-             className="object-cover"
+             className="object-cover object-center md:object-contain"
              fallbackClassName="flex h-full items-center justify-center bg-sepia px-6 text-center font-sans text-sm uppercase tracking-widest text-gray-600"
              fallbackLabel="обложка статьи недоступна"
            />
@@ -176,17 +191,25 @@ export default async function ArticlePage({ params }: Props) {
 
       {hasCarousel && (
         <div className="max-w-4xl mx-auto px-4 mt-10">
-          <ImageCarousel images={galleryImages} alt={article.title} />
+          <ImageCarousel images={carouselItems} alt={article.title} />
         </div>
       )}
 
       <div className="max-w-4xl mx-auto px-4 mt-10">
-        <div className="prose prose-lg prose-stone dark:prose-invert font-serif mx-auto first-letter:text-5xl first-letter:font-display first-letter:float-left first-letter:mr-3 first-letter:mt-2">
+        <div className="prose prose-xl prose-stone dark:prose-invert font-serif mx-auto first-letter:text-5xl first-letter:font-display first-letter:float-left first-letter:mr-3 first-letter:mt-2">
            
            <p className="lead text-xl text-gray-700 dark:text-gray-300 mb-6">{article.excerpt}</p>
            
            {article.html ? (
-             <div dangerouslySetInnerHTML={{ __html: safeHtml }} />
+             articleContentBlocks.map((block, index) => (
+               block.type === 'html'
+                 ? <div key={`html-${index}`} dangerouslySetInnerHTML={{ __html: block.html }} />
+                 : (
+                   <div key={`carousel-${index}`} className="not-prose">
+                     <ImageCarousel images={block.images} alt={article.title} fit="contain" />
+                   </div>
+                 )
+             ))
            ) : (
              <>
                <p>

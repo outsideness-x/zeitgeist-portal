@@ -68,7 +68,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
 
         <div className="w-12 h-1 bg-accent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-        <p className="font-serif text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
+        <p className="font-serif text-lg text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
           {article.excerpt}
         </p>
 

@@ -1,9 +1,11 @@
 "use client";
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
+import { UserAvatar } from '@/components/UserAvatar';
 import { backendRequest } from '@/services/backend/client';
+import { prepareAvatarDataUrl } from '@/services/userAvatar';
 import { AuthorAnalyticsCharts } from './AuthorAnalyticsCharts';
 
 type BookmarkItem = {
@@ -66,13 +68,17 @@ type AuthorStatsResponse = {
 };
 
 export default function AccountPage() {
-  const { user, loading, csrfToken } = useAuth();
+  const { user, loading, csrfToken, refreshMe } = useAuth();
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
   const [authorStats7, setAuthorStats7] = useState<AuthorStatsResponse | null>(null);
   const [authorStats30, setAuthorStats30] = useState<AuthorStatsResponse | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarErrorMessage, setAvatarErrorMessage] = useState('');
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const canSeeAuthorStats = useMemo(() => {
     if (!user) {
@@ -130,6 +136,10 @@ export default function AccountPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, canSeeAuthorStats]);
 
+  useEffect(() => {
+    setAvatarUrl(user?.avatarDataUrl ?? null);
+  }, [user?.id, user?.avatarDataUrl]);
+
   const removeBookmark = async (articleId: string) => {
     if (!csrfToken) {
       return;
@@ -145,6 +155,58 @@ export default function AccountPage() {
       setBookmarks((current) => current.filter((bookmark) => bookmark.article.id !== articleId));
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'не удалось обновить закладки');
+    }
+  };
+
+  const saveAvatar = async (nextAvatarDataUrl: string | null) => {
+    if (!csrfToken) {
+      throw new Error('Сессия истекла. Обновите страницу и попробуйте снова.');
+    }
+
+    const response = await backendRequest<{ user: { avatarDataUrl?: string | null } }>({
+      path: '/api/auth/avatar',
+      method: 'PUT',
+      csrfToken,
+      body: {
+        avatarDataUrl: nextAvatarDataUrl,
+      },
+    });
+
+    setAvatarUrl(response.user.avatarDataUrl ?? null);
+    await refreshMe();
+  };
+
+  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    setAvatarBusy(true);
+    setAvatarErrorMessage('');
+
+    try {
+      const avatarDataUrl = await prepareAvatarDataUrl(file);
+      await saveAvatar(avatarDataUrl);
+    } catch (error) {
+      setAvatarErrorMessage(error instanceof Error ? error.message : 'Не удалось обновить фото профиля.');
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    setAvatarBusy(true);
+    setAvatarErrorMessage('');
+
+    try {
+      await saveAvatar(null);
+    } catch (error) {
+      setAvatarErrorMessage(error instanceof Error ? error.message : 'Не удалось удалить фото профиля.');
+    } finally {
+      setAvatarBusy(false);
     }
   };
 
@@ -164,9 +226,48 @@ export default function AccountPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
       <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-4xl">Кабинет</h1>
-          <p className="text-sm text-gray-500">Роль: {user.role.toLowerCase()}</p>
+        <div className="flex items-start gap-4">
+          <UserAvatar
+            name={user.name}
+            avatarUrl={avatarUrl}
+            sizeClassName="h-20 w-20"
+            textClassName="text-3xl"
+            className="shrink-0"
+          />
+          <div>
+            <h1 className="font-display text-4xl">{user.name}</h1>
+            <p className="text-sm text-gray-500">Роль: {user.role.toLowerCase()}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="sr-only"
+                onChange={(event) => void handleAvatarUpload(event)}
+              />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarBusy}
+                className="border border-sepia px-3 py-2 text-xs uppercase tracking-wider hover:border-accent disabled:opacity-60"
+              >
+                {avatarBusy ? 'Сохраняем...' : avatarUrl ? 'Сменить фото' : 'Загрузить фото'}
+              </button>
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={() => void handleAvatarRemove()}
+                  disabled={avatarBusy}
+                  className="border border-sepia px-3 py-2 text-xs uppercase tracking-wider hover:border-accent disabled:opacity-60"
+                >
+                  Удалить фото
+                </button>
+              )}
+            </div>
+            {avatarErrorMessage && (
+              <p className="mt-2 text-sm text-red-600">{avatarErrorMessage}</p>
+            )}
+          </div>
         </div>
         <Link href="/upload" className="border border-accent px-4 py-2 text-xs uppercase tracking-widest text-accent hover:bg-accent hover:text-white">
           Отправить рукопись

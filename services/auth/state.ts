@@ -3,6 +3,7 @@ export type AuthUser = {
   name: string;
   email: string;
   role: 'READER' | 'AUTHOR' | 'ADMIN';
+  avatarDataUrl?: string | null;
 };
 
 export type AuthState = {
@@ -40,7 +41,8 @@ const usersEqual = (left: AuthUser | null, right: AuthUser | null): boolean => {
     left.id === right.id &&
     left.name === right.name &&
     left.email === right.email &&
-    left.role === right.role
+    left.role === right.role &&
+    (left.avatarDataUrl ?? null) === (right.avatarDataUrl ?? null)
   );
 };
 

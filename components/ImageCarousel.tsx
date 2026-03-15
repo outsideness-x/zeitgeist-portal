@@ -3,35 +3,46 @@
 import { useRef, useState } from 'react';
 import type { JSX, PointerEvent } from 'react';
 import { ContentImage } from '@/components/ContentImage';
+import type { ArticleCarouselImage } from '@/types';
 
 type ImageCarouselProps = {
-  images: string[];
+  images: ArticleCarouselImage[];
   alt: string;
+  fit?: 'cover' | 'contain';
 };
 
-export const ImageCarousel = ({ images, alt }: ImageCarouselProps): JSX.Element | null => {
+export const ImageCarousel = ({ images, alt, fit = 'cover' }: ImageCarouselProps): JSX.Element | null => {
   const [activeIndex, setActiveIndex] = useState(0);
   const pointerStartX = useRef<number | null>(null);
+  const imageClassName = fit === 'contain' ? 'object-contain' : 'object-cover';
 
   if (images.length === 0) {
     return null;
   }
 
+  const activeImage = images[activeIndex] ?? images[0];
+
   if (images.length === 1) {
     return (
       <section className="mt-8" aria-label="изображение статьи">
-        <div className="relative h-[34vh] sm:h-[40vh] md:h-[48vh] overflow-hidden rounded-lg border border-sepia bg-paper dark:border-gray-800 dark:bg-card-bg">
+        <div className="relative h-[34vh] sm:h-[40vh] md:h-[48vh] overflow-hidden rounded-xl bg-sepia/30 dark:bg-card-bg/80">
           <ContentImage
-            src={images[0]}
-            alt={alt}
+            src={images[0].src}
+            alt={images[0].alt || alt}
             route="/article"
             component="ImageCarousel"
             fill
             sizes="(max-width: 768px) 100vw, 900px"
-            className="object-cover"
+            className={imageClassName}
             fallbackLabel="изображение недоступно"
           />
         </div>
+        {images[0].captionHtml && (
+          <div
+            className="mt-3 text-center text-sm text-gray-600 dark:text-gray-400"
+            dangerouslySetInnerHTML={{ __html: images[0].captionHtml }}
+          />
+        )}
       </section>
     );
   }
@@ -85,17 +96,17 @@ export const ImageCarousel = ({ images, alt }: ImageCarouselProps): JSX.Element 
         }}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
-        className="relative overflow-hidden border border-sepia bg-paper dark:border-gray-800 dark:bg-card-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="relative overflow-hidden rounded-xl bg-sepia/30 dark:bg-card-bg/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
       >
         <div className="relative h-[34vh] sm:h-[40vh] md:h-[48vh]">
           <ContentImage
-            src={images[activeIndex]}
-            alt={`${alt} — изображение ${activeIndex + 1}`}
+            src={activeImage.src}
+            alt={activeImage.alt || `${alt} — изображение ${activeIndex + 1}`}
             route="/article"
             component="ImageCarousel"
             fill
             sizes="(max-width: 768px) 100vw, 900px"
-            className="object-cover"
+            className={imageClassName}
             fallbackLabel="изображение недоступно"
           />
         </div>
@@ -104,7 +115,7 @@ export const ImageCarousel = ({ images, alt }: ImageCarouselProps): JSX.Element 
           type="button"
           onClick={goPrev}
           aria-label="предыдущее изображение"
-          className="absolute left-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-sepia bg-paper/80 text-ink transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-gray-700 dark:bg-[#121212]/70 dark:text-gray-200"
+          className="absolute left-4 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 dark:bg-black/35"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
@@ -115,14 +126,14 @@ export const ImageCarousel = ({ images, alt }: ImageCarouselProps): JSX.Element 
           type="button"
           onClick={goNext}
           aria-label="следующее изображение"
-          className="absolute right-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-sepia bg-paper/80 text-ink transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-gray-700 dark:bg-[#121212]/70 dark:text-gray-200"
+          className="absolute right-4 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 dark:bg-black/35"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
           </svg>
         </button>
 
-        <div className="absolute right-3 top-3 rounded border border-sepia bg-paper/80 px-2 py-1 text-xs font-sans dark:border-gray-700 dark:bg-[#121212]/70">
+        <div className="absolute right-4 top-4 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-sans text-white backdrop-blur-sm dark:bg-black/35">
           {activeIndex + 1} / {images.length}
         </div>
       </div>
@@ -130,14 +141,23 @@ export const ImageCarousel = ({ images, alt }: ImageCarouselProps): JSX.Element 
       <div className="mt-3 flex items-center justify-center gap-2" aria-hidden="true">
         {images.map((image, index) => (
           <button
-            key={`${image}-${index}`}
+            key={`${image.src}-${index}`}
             type="button"
             onClick={() => setActiveIndex(index)}
-            className={`h-2 w-2 rounded-full border border-sepia dark:border-gray-700 ${index === activeIndex ? 'bg-ink dark:bg-gray-300' : 'bg-transparent'}`}
+            className={`rounded-full transition-all ${
+              index === activeIndex ? 'h-1.5 w-4 bg-ink/80 dark:bg-gray-200' : 'h-1.5 w-1.5 bg-gray-300 dark:bg-gray-600'
+            }`}
             tabIndex={-1}
           />
         ))}
       </div>
+
+      {activeImage.captionHtml && (
+        <div
+          className="mt-3 text-center text-sm text-gray-600 dark:text-gray-400"
+          dangerouslySetInnerHTML={{ __html: activeImage.captionHtml }}
+        />
+      )}
     </section>
   );
 };

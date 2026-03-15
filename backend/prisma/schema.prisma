@@ -63,6 +63,7 @@ model User {
   name            String
   email           String         @unique
   passwordHash    String
+  avatarDataUrl   String?
   twoFactorEmailEnabled    Boolean        @default(false)
   twoFactorEmailVerifiedAt DateTime?
   role            Role           @default(READER)

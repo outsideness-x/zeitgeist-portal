@@ -83,10 +83,22 @@ export default function AdminPage() {
       path: `/api/admin/submissions?${query.toString()}`,
     });
 
-    setQueue(response.items);
-    if (!selectedId && response.items[0]) {
-      setSelectedId(response.items[0].id);
+    const items = response.items;
+    setQueue(items);
+
+    if (items.length === 0) {
+      setSelectedId(null);
+      setDetail(null);
+      return items;
     }
+
+    const hasSelectedInQueue = selectedId ? items.some((item) => item.id === selectedId) : false;
+    if (!hasSelectedInQueue && items[0]) {
+      setSelectedId(items[0].id);
+      setDetail(null);
+    }
+
+    return items;
   };
 
   const loadDetail = async (id: string) => {
@@ -166,8 +178,9 @@ export default function AdminPage() {
       }
 
       setSuccessMessage('действие выполнено');
-      await loadQueue();
-      if (selectedId) {
+      const items = await loadQueue();
+      const canUseCurrentSelection = selectedId ? items.some((item) => item.id === selectedId) : false;
+      if (selectedId && canUseCurrentSelection) {
         await loadDetail(selectedId);
       }
     } catch (error) {
@@ -276,9 +289,9 @@ export default function AdminPage() {
         </aside>
 
         <section className="min-w-0 overflow-hidden border border-sepia bg-card-bg p-6">
-          {!detail && <p className="text-sm text-ink/70">Выберите заявку из очереди</p>}
+          {queue.length === 0 && <p className="text-sm text-ink/70">Заявок нет</p>}
 
-          {detail && (
+          {queue.length > 0 && detail && (
             <div className="space-y-6">
               <header>
                 <h2 className="font-display text-3xl [overflow-wrap:anywhere]">{detail.submission.title}</h2>
