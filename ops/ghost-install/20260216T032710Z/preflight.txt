@@ -1,0 +1,117 @@
+## timestamp
+2026-02-16T03:27:29Z
+
+## uname -a
+Linux r1113369 6.8.0-45-generic #45-Ubuntu SMP PREEMPT_DYNAMIC Fri Aug 30 12:02:04 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+
+## lsb_release -a
+Distributor ID:	Ubuntu
+Description:	Ubuntu 24.04.4 LTS
+Release:	24.04
+Codename:	noble
+
+## uptime
+ 03:27:29 up 12:27,  4 users,  load average: 0.36, 0.34, 0.26
+
+## free -m
+               total        used        free      shared  buff/cache   available
+Mem:            3916        1524         243          19        2457        2391
+Swap:              0           0           0
+
+## df -h
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           392M  1.6M  391M   1% /run
+/dev/sda1        67G   17G   47G  27% /
+tmpfs           2.0G     0  2.0G   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           392M   36K  392M   1% /run/user/1000
+
+## swap (swapon --show)
+
+## ss -tulpn
+Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+udp   UNCONN 0      0         127.0.0.54:53         0.0.0.0:*          
+udp   UNCONN 0      0         127.0.0.53:53         0.0.0.0:*          
+tcp   LISTEN 0      0         127.0.0.54:53         0.0.0.0:*          
+tcp   LISTEN 0      0         127.0.0.53:53         0.0.0.0:*          
+tcp   LISTEN 0      0          127.0.0.1:41817      0.0.0.0:*          
+tcp   LISTEN 0      0          127.0.0.1:43519      0.0.0.0:*          
+tcp   LISTEN 0      0            0.0.0.0:80         0.0.0.0:*          
+tcp   LISTEN 0      0            0.0.0.0:22         0.0.0.0:*          
+tcp   LISTEN 0      0            0.0.0.0:443        0.0.0.0:*          
+tcp   LISTEN 0      0                  *:80               *:*          
+tcp   LISTEN 0      0                  *:22               *:*          
+tcp   LISTEN 0      0                  *:443              *:*          
+
+## docker ps
+
+## docker compose version
+Docker Compose version v5.0.2
+
+## dns (dig +short)
+
+## dns (getent hosts)
+
+## public checks
+site:000
+api_health:000
+## local host-header checks
+local_http:000
+local_https:000
+local_api_health:000
+## ss -tulpn (sudo)
+
+## docker ps (sudo)
+
+## curl public checks
+site:200
+api_health:404
+
+## dns (dig +short)
+2.58.95.184
+2.58.95.184
+## ss -tulpn (no sudo)
+Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                           
+udp   UNCONN 0      0         127.0.0.54:53         0.0.0.0:*                                     
+udp   UNCONN 0      0      127.0.0.53%lo:53         0.0.0.0:*                                     
+tcp   LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*                                     
+tcp   LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*                                     
+tcp   LISTEN 0      511        127.0.0.1:41817      0.0.0.0:*    users:(("node",pid=289420,fd=19))
+tcp   LISTEN 0      511        127.0.0.1:43519      0.0.0.0:*    users:(("node",pid=289473,fd=19))
+tcp   LISTEN 0      4096         0.0.0.0:80         0.0.0.0:*                                     
+tcp   LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*                                     
+tcp   LISTEN 0      4096         0.0.0.0:443        0.0.0.0:*                                     
+tcp   LISTEN 0      4096            [::]:80            [::]:*                                     
+tcp   LISTEN 0      4096            [::]:22            [::]:*                                     
+tcp   LISTEN 0      4096            [::]:443           [::]:*                                     
+
+## docker ps (no sudo)
+CONTAINER ID   IMAGE                       COMMAND                  CREATED       STATUS                 PORTS                                                                          NAMES
+fff66d9d8510   ghost:5-alpine              "docker-entrypoint.s…"   7 hours ago   Up 7 hours (healthy)   2368/tcp                                                                       zeitgeist-ghost
+e817206d2c97   zeitgeist-portal-backend    "docker-entrypoint.s…"   7 hours ago   Up 7 hours (healthy)   4000/tcp                                                                       zeitgeist-backend
+efee46c36306   nginx:1.27-alpine           "/docker-entrypoint.…"   7 hours ago   Up 7 hours             0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp   zeitgeist-nginx
+098e58a4812b   zeitgeist-portal-frontend   "docker-entrypoint.s…"   7 hours ago   Up 7 hours (healthy)   3000/tcp                                                                       zeitgeist-frontend
+b7d2a44df4ca   postgres:16-alpine          "docker-entrypoint.s…"   7 hours ago   Up 7 hours (healthy)   5432/tcp                                                                       zeitgeist-postgres
+0999b4680920   minio/minio:latest          "/usr/bin/docker-ent…"   7 hours ago   Up 7 hours             9000/tcp                                                                       zeitgeist-minio
+
+## nginx -v
+/bin/bash: line 4: nginx: command not found
+
+## current public path checks (before changes)
+ghost_path:308
+content_path:308
+members_path:308
+api_root:404
+api_api_health:200
+## api subdomain health
+api.zeitgeist.host/api/health:000
+## api subdomain health
+api.zeitgeist.host/api/health:200
+## docker compose ps
+NAME                 IMAGE                       COMMAND                  SERVICE    CREATED       STATUS                 PORTS
+zeitgeist-backend    zeitgeist-portal-backend    "docker-entrypoint.s…"   backend    7 hours ago   Up 7 hours (healthy)   4000/tcp
+zeitgeist-frontend   zeitgeist-portal-frontend   "docker-entrypoint.s…"   frontend   7 hours ago   Up 7 hours (healthy)   3000/tcp
+zeitgeist-ghost      ghost:5-alpine              "docker-entrypoint.s…"   ghost      7 hours ago   Up 7 hours (healthy)   2368/tcp
+zeitgeist-minio      minio/minio:latest          "/usr/bin/docker-ent…"   minio      7 hours ago   Up 7 hours             9000/tcp
+zeitgeist-nginx      nginx:1.27-alpine           "/docker-entrypoint.…"   nginx      7 hours ago   Up 7 hours             0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp
+zeitgeist-postgres   postgres:16-alpine          "docker-entrypoint.s…"   postgres   7 hours ago   Up 7 hours (healthy)   5432/tcp
