@@ -95,6 +95,11 @@ docker compose --env-file .env.production build frontend
 docker compose --env-file .env.production up -d frontend
 ```
 
+Ghost tag conventions used by portal mapping:
+- Section tags: `journal` or `research` or `nova`
+- Author tags: `author: <display name>` (or `автор: <display name>`)
+- Author tags are interpreted as article authors and hidden from visible tag chips.
+
 Backend publish-to-Ghost is optional and currently disabled:
 - `PUBLISH_PROVIDER=local`
 

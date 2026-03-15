@@ -13,6 +13,12 @@ RUN npx tsc -p tsconfig.build.json
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+ARG BUILD_COMMIT=unknown
+ARG BUILD_TIME=unknown
+ARG BUILD_REF=unknown
+ENV BUILD_COMMIT=$BUILD_COMMIT
+ENV BUILD_TIME=$BUILD_TIME
+ENV BUILD_REF=$BUILD_REF
 RUN apk add --no-cache openssl
 RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
 COPY --from=builder /app/package*.json ./

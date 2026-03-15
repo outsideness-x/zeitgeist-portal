@@ -3,7 +3,8 @@ import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
-import { getEnv, type BackendEnv } from './config/env.js';
+import { getEnv } from './config/env.js';
+import { parseAllowedCorsOrigins } from './lib/cors.js';
 import { prismaPlugin } from './plugins/prisma.js';
 import { authPlugin } from './plugins/auth.js';
 import { registerHealthRoutes } from './routes/health.js';
@@ -16,30 +17,35 @@ import { registerSubmissionRoutes } from './routes/submissions.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerWebhookRoutes } from './routes/webhooks.js';
 
-const parseCorsOrigins = (env: BackendEnv) => {
-  const rawOrigins = [
-    env.BACKEND_CORS_ORIGIN,
-    ...(env.BACKEND_CORS_ORIGINS?.split(',').map((value) => value.trim()).filter(Boolean) ?? []),
-  ];
-
-  const deduped = Array.from(new Set(rawOrigins));
-
-  deduped.forEach((origin) => {
-    void new URL(origin);
-  });
-
-  return deduped;
-};
-
 export const buildServer = () => {
   const env = getEnv();
-  const allowedCorsOrigins = parseCorsOrigins(env);
+  const allowedCorsOrigins = parseAllowedCorsOrigins(env);
 
   const app = Fastify({
     logger: {
       level: env.NODE_ENV === 'production' ? 'info' : 'debug',
     },
     trustProxy: true,
+  });
+
+  app.addContentTypeParser(/^application\/pdf(?:;.*)?$/i, {
+    parseAs: 'buffer',
+    bodyLimit: env.UPLOAD_MAX_BYTES,
+  }, (request, payload, done) => {
+    done(null, payload);
+  });
+
+  app.addHook('onSend', async (request, reply, payload) => {
+    reply.header('x-content-type-options', 'nosniff');
+    reply.header('x-frame-options', 'DENY');
+    reply.header('referrer-policy', 'strict-origin-when-cross-origin');
+    reply.header('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+
+    if (env.NODE_ENV === 'production') {
+      reply.header('strict-transport-security', 'max-age=15552000; includeSubDomains');
+    }
+
+    return payload;
   });
 
   app.register(sensible);

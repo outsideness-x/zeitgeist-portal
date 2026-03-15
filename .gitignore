@@ -38,6 +38,12 @@ yarn-error.log*
 *.env.local
 ops/certbot/letsencrypt
 ops/certbot/www
+ops/certbot/*.log
+ops/ghost-install/
+ops/nginx/active.conf
+ops/nginx/active.conf.*
+docker-compose.yml.bak
+.releases/
 
 # Vercel
 .vercel

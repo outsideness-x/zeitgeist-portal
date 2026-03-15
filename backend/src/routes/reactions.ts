@@ -42,6 +42,15 @@ export const registerReactionRoutes = async (app: FastifyInstance) => {
   const env = getEnv();
   const applauseCap = env.MAX_APPLAUSE_PER_USER_PER_ARTICLE;
 
+  const ensureReactionAggregateRow = async (db: FastifyInstance['prisma'] | Prisma.TransactionClient, articleId: string) => {
+    await db.articleReactionAggregate.createMany({
+      data: [{
+        articleId,
+      }],
+      skipDuplicates: true,
+    });
+  };
+
   const ensureArticleExists = async (articleId: string) => {
     const article = await app.prisma.article.findUnique({
       where: {
@@ -162,32 +171,17 @@ export const registerReactionRoutes = async (app: FastifyInstance) => {
     }
 
     const summary = await app.prisma.$transaction(async (tx) => {
-      await tx.articleReactionAggregate.upsert({
-        where: {
+      await ensureReactionAggregateRow(tx, article.id);
+
+      const insertedLike = await tx.articleLike.createMany({
+        data: [{
           articleId: article.id,
-        },
-        create: {
-          articleId: article.id,
-        },
-        update: {},
+          userId: request.auth.userId,
+        }],
+        skipDuplicates: true,
       });
 
-      let insertedLike = false;
-      try {
-        await tx.articleLike.create({
-          data: {
-            articleId: article.id,
-            userId: request.auth.userId,
-          },
-        });
-        insertedLike = true;
-      } catch (error) {
-        if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
-          throw error;
-        }
-      }
-
-      if (insertedLike) {
+      if (insertedLike.count > 0) {
         await tx.articleReactionAggregate.update({
           where: {
             articleId: article.id,
@@ -244,15 +238,7 @@ export const registerReactionRoutes = async (app: FastifyInstance) => {
     }
 
     const summary = await app.prisma.$transaction(async (tx) => {
-      await tx.articleReactionAggregate.upsert({
-        where: {
-          articleId: article.id,
-        },
-        create: {
-          articleId: article.id,
-        },
-        update: {},
-      });
+      await ensureReactionAggregateRow(tx, article.id);
 
       const deleted = await tx.articleLike.deleteMany({
         where: {
@@ -318,29 +304,15 @@ export const registerReactionRoutes = async (app: FastifyInstance) => {
     const requestedDelta = body.data.delta ?? 1;
 
     const response = await app.prisma.$transaction(async (tx) => {
-      await tx.articleReactionAggregate.upsert({
-        where: {
-          articleId: article.id,
-        },
-        create: {
-          articleId: article.id,
-        },
-        update: {},
-      });
+      await ensureReactionAggregateRow(tx, article.id);
 
-      await tx.articleApplause.upsert({
-        where: {
-          articleId_userId: {
-            articleId: article.id,
-            userId: request.auth.userId,
-          },
-        },
-        create: {
+      await tx.articleApplause.createMany({
+        data: [{
           articleId: article.id,
           userId: request.auth.userId,
           count: 0,
-        },
-        update: {},
+        }],
+        skipDuplicates: true,
       });
 
       // this row lock serializes applause updates for one user and one article

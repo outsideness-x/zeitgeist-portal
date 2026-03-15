@@ -1,9 +1,11 @@
 import { randomUUID, createHash } from 'node:crypto';
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
+  type GetObjectCommandOutput,
   type HeadObjectCommandOutput,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -47,6 +49,37 @@ export const createPresignedPutUrl = async (args: {
   });
 };
 
+export const putStoredObject = async (args: {
+  client: S3Client;
+  bucket: string;
+  key: string;
+  body: Buffer;
+  contentType: string;
+}) => {
+  const command = new PutObjectCommand({
+    Bucket: args.bucket,
+    Key: args.key,
+    Body: args.body,
+    ContentLength: args.body.byteLength,
+    ContentType: args.contentType,
+  });
+
+  await args.client.send(command);
+};
+
+export const deleteStoredObject = async (args: {
+  client: S3Client;
+  bucket: string;
+  key: string;
+}) => {
+  const command = new DeleteObjectCommand({
+    Bucket: args.bucket,
+    Key: args.key,
+  });
+
+  await args.client.send(command);
+};
+
 export const createPresignedGetUrl = async (args: {
   client: S3Client;
   bucket: string;
@@ -61,6 +94,19 @@ export const createPresignedGetUrl = async (args: {
   return getSignedUrl(args.client, command, {
     expiresIn: args.expiresInSeconds,
   });
+};
+
+export const getStoredObject = async (args: {
+  client: S3Client;
+  bucket: string;
+  key: string;
+}): Promise<GetObjectCommandOutput> => {
+  const command = new GetObjectCommand({
+    Bucket: args.bucket,
+    Key: args.key,
+  });
+
+  return args.client.send(command);
 };
 
 export const headStoredObject = async (args: {

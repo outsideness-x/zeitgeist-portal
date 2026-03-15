@@ -1,0 +1,9 @@
+zeitgeist-frontend	zeitgeist-portal-frontend	Up 34 minutes (healthy)
+zeitgeist-postgres	postgres:16-alpine	Up 35 minutes (healthy)
+zeitgeist-minio	minio/minio:latest	Up 35 minutes
+zeitgeist-backend	zeitgeist-portal-backend	Up 34 minutes (healthy)
+zeitgeist-nginx	nginx:1.27-alpine	Up 2 hours
+dreamy_hypatia	node:20-alpine	Up 9 days
+zeitgeist-ghost-cms	ghost:5-alpine	Up 10 days (healthy)
+zeitgeist-ghost-mysql	mysql:8	Up 10 days (healthy)
+zeitgeist-ghost	ghost:5-alpine	Up 11 days (healthy)

@@ -23,6 +23,7 @@ describe('frontend auth reducer', () => {
       name: 'reader',
       email: 'reader@example.com',
       role: 'READER' as const,
+      twoFactorEmailEnabled: false,
     };
 
     const nextState = authStateReducer(initialAuthState, {

@@ -1,0 +1,2 @@
+  main                             5cc6ddb [origin/main: ahead 5] fix: restore nova express card image and layout
+* sync/vps-to-github-20260223-1055 dd50ada [origin/sync/vps-to-github-20260223-1055] chore(ops): sync VPS deploy configs and ignore runtime artifacts

@@ -16,7 +16,7 @@ const ensureSchema = z.object({
   canonicalPath: z.string().trim().min(1).max(300).refine((value) => value.startsWith('/article/'), {
     message: 'canonicalPath must start with /article/',
   }).optional(),
-  featureImage: z.string().trim().url().optional(),
+  featureImage: z.string().trim().max(2000).optional(),
 });
 
 const listQuerySchema = z.object({
@@ -46,6 +46,26 @@ const mapSectionFromDb = (section: ArticleSection): 'journal' | 'research' | 'no
   return 'journal';
 };
 
+const normalizeFeatureImage = (rawValue?: string): string | undefined => {
+  const value = rawValue?.trim();
+  if (!value) {
+    return undefined;
+  }
+
+  const candidate = value.startsWith('//') ? `https:${value}` : value;
+
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+};
+
 export const registerArticleRoutes = async (app: FastifyInstance) => {
   const env = getEnv();
   const storageClient = createStorageClient(env);
@@ -68,6 +88,7 @@ export const registerArticleRoutes = async (app: FastifyInstance) => {
     const source = sourceMap[body.source];
     const section = body.section ? sectionMap[body.section] : 'JOURNAL';
     const resolvedSlug = (body.slug ?? body.externalId ?? '').trim();
+    const normalizedFeatureImage = normalizeFeatureImage(body.featureImage);
 
     if (!resolvedSlug) {
       reply.code(400).send({ error: 'bad_request', message: 'slug or externalId is required' });
@@ -84,16 +105,17 @@ export const registerArticleRoutes = async (app: FastifyInstance) => {
       title: body.title ?? resolvedSlug,
       excerpt: body.excerpt ?? '',
       section,
-      featureImage: body.featureImage,
+      featureImage: normalizedFeatureImage,
       publishedAt: new Date(),
     };
 
     const updateData = {
+      slug: resolvedSlug,
       title: body.title ?? undefined,
       excerpt: body.excerpt ?? undefined,
       canonicalPath,
       section,
-      featureImage: body.featureImage,
+      featureImage: normalizedFeatureImage,
     };
 
     // this lazy upsert guarantees a stable internal article id before analytics or engagement writes

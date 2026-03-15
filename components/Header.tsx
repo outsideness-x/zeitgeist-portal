@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AuthModal } from './AuthModal';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from './AuthProvider';
+import { UserAvatar } from './UserAvatar';
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
@@ -104,14 +105,14 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-paper/95 backdrop-blur-sm border-b border-sepia shadow-sm transition-all duration-300 dark:bg-black/90 dark:border-gray-800">
+      <header className="sticky top-0 z-50 bg-paper/95 backdrop-blur-sm transition-all duration-300 dark:bg-black/90">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="md:hidden flex items-center">
               <button
                 ref={triggerRef}
                 type="button"
-                className="inline-flex items-center justify-center h-11 w-11 border border-sepia dark:border-gray-700 text-ink dark:text-gray-200 hover:border-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="inline-flex items-center justify-center h-11 w-11 appearance-none border-0 bg-transparent shadow-none text-ink dark:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 onClick={() => setMenuOpen((prev) => !prev)}
                 aria-expanded={isMenuOpen}
                 aria-controls="mobile-menu"
@@ -137,7 +138,7 @@ export const Header: React.FC = () => {
             </div>
 
             {/* desktop navigation */}
-            <nav className="hidden md:flex space-x-6 items-center font-serif text-lg tracking-wide" aria-label="Основная навигация">
+            <nav className="hidden md:flex space-x-6 items-center font-serif text-xl tracking-wide" aria-label="Основная навигация">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -164,9 +165,7 @@ export const Header: React.FC = () => {
 
               {user ? (
                 <div className="flex items-center space-x-2 font-sans text-sm">
-                  <div className="h-8 w-8 rounded-full bg-accent text-white flex items-center justify-center font-bold">
-                    {user.name.charAt(0)}
-                  </div>
+                  <UserAvatar name={user.name} avatarUrl={user.avatarDataUrl ?? null} />
                   <button onClick={() => void handleLogout()} className="text-gray-500 hover:text-red-500 text-xs uppercase">Выйти</button>
                 </div>
               ) : (
@@ -200,7 +199,7 @@ export const Header: React.FC = () => {
                   type="button"
                   onClick={closeMenu}
                   aria-label="Закрыть меню"
-                  className="inline-flex items-center justify-center h-11 w-11 border border-sepia dark:border-gray-700 text-ink dark:text-gray-200 hover:border-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="inline-flex items-center justify-center h-11 w-11 appearance-none border-0 bg-transparent shadow-none text-ink dark:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
@@ -208,7 +207,7 @@ export const Header: React.FC = () => {
                 </button>
               </div>
 
-              <nav className="flex flex-col gap-3 font-serif text-lg">
+              <nav className="flex flex-col gap-3 font-serif text-xl">
                 {navItems.map((item, index) => (
                   <Link
                     key={item.href}

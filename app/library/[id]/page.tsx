@@ -2,7 +2,7 @@ import { fetchBookById } from '@/services/content';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import Image from 'next/image';
+import { ContentImage } from '@/components/ContentImage';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -31,7 +31,7 @@ export default async function BookDetailPage({ params }: Props) {
   const hasValidPdf = Boolean(book.pdfUrl && book.pdfUrl !== '#');
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-black py-20 px-4 transition-colors duration-300">
+    <div className="min-h-screen bg-paper dark:bg-card-bg py-20 px-4 transition-colors duration-300">
       <div className="max-w-5xl mx-auto">
         
         {/* back link */}
@@ -46,13 +46,18 @@ export default async function BookDetailPage({ params }: Props) {
             
             {/* left column: cover */}
             <div className="w-full md:w-1/3 flex-shrink-0">
-              <div className="aspect-[2/3] w-full bg-gray-100 dark:bg-gray-900 shadow-md border border-gray-200 dark:border-gray-700 p-2">
-                <Image
+              <div className="aspect-[2/3] w-full bg-gray-100 dark:bg-card-bg shadow-md border border-gray-200 dark:border-gray-700 p-2">
+                <ContentImage
                   src={book.coverImage}
                   alt={book.title}
+                  route="/library"
+                  component="LibraryBookDetail"
+                  articleId={book.id}
                   width={500}
                   height={750}
+                  fill={false}
                   className="h-full w-full object-cover"
+                  fallbackLabel="обложка недоступна"
                 />
               </div>
             </div>
@@ -84,7 +89,7 @@ export default async function BookDetailPage({ params }: Props) {
               </div>
 
               {/* download action */}
-              <div className="bg-stone-50 dark:bg-gray-900/50 p-6 border border-sepia dark:border-gray-700">
+              <div className="bg-stone-50 dark:bg-card-bg p-6 border border-sepia dark:border-gray-700">
                 <h4 className="font-sans font-bold uppercase text-sm mb-4 text-ink dark:text-gray-200">Цифровой доступ</h4>
                 {hasValidPdf ? (
                   <a

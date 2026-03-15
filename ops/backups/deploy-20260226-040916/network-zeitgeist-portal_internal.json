@@ -1,0 +1,96 @@
+[
+    {
+        "Name": "zeitgeist-portal_internal",
+        "Id": "6a699bed675100064add260f57e9e342329e81b8b530022b47f868e247fb8c30",
+        "Created": "2026-02-15T20:28:46.463574404Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv4": true,
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Options": {},
+        "Labels": {
+            "com.docker.compose.config-hash": "8835267c32c01989a1dc96873afd6b593a7e9e02c259d2acdcf6c1d96c699726",
+            "com.docker.compose.network": "internal",
+            "com.docker.compose.project": "zeitgeist-portal",
+            "com.docker.compose.version": "5.0.2"
+        },
+        "Containers": {
+            "0aae706d538f75ddc82d98643309a919fdabd2c6df75b6a7ef5c4bc58a5f0774": {
+                "Name": "zeitgeist-backend",
+                "EndpointID": "6d5a72db943151dd91be76bf718914e0c6a49b84437f7076b69e0a07673caaaa",
+                "MacAddress": "c6:a4:4a:00:e7:1d",
+                "IPv4Address": "172.18.0.5/16",
+                "IPv6Address": ""
+            },
+            "3910428c7cb0ec4155b8aa1c8bf865d97da657f7f659f4596a036ea3e97ea875": {
+                "Name": "zeitgeist-postgres",
+                "EndpointID": "c93e3495db6101d5c5250610e390077879e7c29bee95ecb31c518f2f1c85f133",
+                "MacAddress": "86:bc:77:7b:45:ff",
+                "IPv4Address": "172.18.0.3/16",
+                "IPv6Address": ""
+            },
+            "5b34bda16b0c53292089b589ce15320f98e281834fd989032684896b0835c5e9": {
+                "Name": "zeitgeist-ghost-cms",
+                "EndpointID": "e5ef67ba3b482aae9604ba1b1087f6cecd729f574a1430641926499cf677f0f9",
+                "MacAddress": "d2:79:cf:05:a3:c1",
+                "IPv4Address": "172.18.0.8/16",
+                "IPv6Address": ""
+            },
+            "980a3a9014409e8a3600587e7e5a78bda3f49399567a334ecf0f3f05eeee730b": {
+                "Name": "zeitgeist-minio",
+                "EndpointID": "973927f1356de12b588488c0ce1d56c228676ff71c9adf643d1819853391374a",
+                "MacAddress": "e6:98:20:24:ce:9f",
+                "IPv4Address": "172.18.0.2/16",
+                "IPv6Address": ""
+            },
+            "c9b4244946a1f239a2081050b9da501b3f7f798a9aca8a9f062644727e562626": {
+                "Name": "zeitgeist-frontend",
+                "EndpointID": "73f2c68ecfd5f652d2d92bd6e4521ac2ddb9042bb3ff3865e23c2a97e017e905",
+                "MacAddress": "92:92:c5:01:69:94",
+                "IPv4Address": "172.18.0.6/16",
+                "IPv6Address": ""
+            },
+            "efee46c363060be9df205899538a58ebde4825bf653c19feb2813ace117b944e": {
+                "Name": "zeitgeist-nginx",
+                "EndpointID": "44fe786608e462eb78c036fb175e310f28306c0670089d63209993bede2d5fe4",
+                "MacAddress": "76:5c:8d:a1:21:2d",
+                "IPv4Address": "172.18.0.4/16",
+                "IPv6Address": ""
+            },
+            "fff66d9d8510bb5b90820337de4de1411c50e572b6016a28f3999596008c87e5": {
+                "Name": "zeitgeist-ghost",
+                "EndpointID": "0696d1c0286eb3cb8cd68f1ebab6574431199b3a792e74284d98d2f004480598",
+                "MacAddress": "32:37:13:0d:1d:24",
+                "IPv4Address": "172.18.0.7/16",
+                "IPv6Address": ""
+            }
+        },
+        "Status": {
+            "IPAM": {
+                "Subnets": {
+                    "172.18.0.0/16": {
+                        "IPsInUse": 10,
+                        "DynamicIPsAvailable": 65526
+                    }
+                }
+            }
+        }
+    }
+]

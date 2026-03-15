@@ -1,8 +1,8 @@
 import { fetchLibraryBooks } from '@/services/content';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import { EmptyState } from '@/components/EmptyState';
+import { ContentImage } from '@/components/ContentImage';
 
 export const metadata: Metadata = {
   title: 'Цифровая библиотека | Zeitgeist',
@@ -26,13 +26,17 @@ export default async function LibraryPage() {
           books.map((book) => (
             <Link href={`/library/${book.id}`} key={book.id} className="group block h-full">
               <div className="bg-white dark:bg-card-bg border border-sepia dark:border-gray-800 p-4 h-full transition-all duration-300 hover:shadow-lg hover:border-accent dark:hover:border-gray-600">
-                <div className="aspect-[2/3] w-full bg-gray-100 dark:bg-gray-900 mb-4 overflow-hidden relative">
-                  <Image
+                <div className="aspect-[2/3] w-full bg-gray-100 dark:bg-card-bg mb-4 overflow-hidden relative">
+                  <ContentImage
                     src={book.coverImage}
                     alt={book.title}
+                    route="/library"
+                    component="LibraryCard"
+                    articleId={book.id}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    fallbackLabel="обложка недоступна"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <span className="bg-white text-ink dark:text-black px-3 py-1 text-xs font-sans uppercase tracking-widest shadow-sm">Открыть</span>
@@ -46,7 +50,7 @@ export default async function LibraryPage() {
                   <p className="font-serif text-sm text-gray-500 dark:text-gray-400 italic mb-3">
                     {book.author}
                   </p>
-                  <p className="font-sans text-xs text-gray-600 dark:text-gray-500 line-clamp-3 leading-relaxed">
+                  <p className="font-sans text-sm text-gray-600 dark:text-gray-500 line-clamp-3 leading-relaxed">
                     {book.description}
                   </p>
                 </div>

@@ -1,0 +1,7 @@
+NAME                 IMAGE                       COMMAND                  SERVICE    CREATED          STATUS                    PORTS
+zeitgeist-backend    zeitgeist-portal-backend    "docker-entrypoint.s…"   backend    37 minutes ago   Up 34 minutes (healthy)   4000/tcp
+zeitgeist-frontend   zeitgeist-portal-frontend   "docker-entrypoint.s…"   frontend   35 minutes ago   Up 34 minutes (healthy)   3000/tcp
+zeitgeist-ghost      ghost:5-alpine              "docker-entrypoint.s…"   ghost      11 days ago      Up 11 days (healthy)      2368/tcp
+zeitgeist-minio      minio/minio:latest          "/usr/bin/docker-ent…"   minio      35 minutes ago   Up 35 minutes             9000/tcp
+zeitgeist-nginx      nginx:1.27-alpine           "/docker-entrypoint.…"   nginx      3 hours ago      Up 2 hours                0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp
+zeitgeist-postgres   postgres:16-alpine          "docker-entrypoint.s…"   postgres   35 minutes ago   Up 35 minutes (healthy)   5432/tcp

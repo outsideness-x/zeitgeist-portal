@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { getEnv } from '../config/env.js';
@@ -63,39 +62,27 @@ export const registerAnalyticsRoutes = async (app: FastifyInstance) => {
     }
 
     const stats = await app.prisma.$transaction(async (tx) => {
-      await tx.articleDailyStats.upsert({
-        where: {
-          articleId_date: {
-            articleId: article.id,
-            date,
-          },
-        },
-        create: {
+      await tx.articleDailyStats.createMany({
+        data: [{
           articleId: article.id,
           date,
           views: 0,
           uniqueVisitors: 0,
-        },
-        update: {},
+        }],
+        skipDuplicates: true,
       });
 
-      let uniqueIncrement = 0;
-
       // this dedup table guarantees unique visitors are incremented once per article per day
-      try {
-        await tx.articleDailyVisitor.create({
-          data: {
-            articleId: article.id,
-            date,
-            visitorId,
-          },
-        });
-        uniqueIncrement = 1;
-      } catch (error) {
-        if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
-          throw error;
-        }
-      }
+      const uniqueInsert = await tx.articleDailyVisitor.createMany({
+        data: [{
+          articleId: article.id,
+          date,
+          visitorId,
+        }],
+        skipDuplicates: true,
+      });
+
+      const uniqueIncrement = uniqueInsert.count > 0 ? 1 : 0;
 
       return tx.articleDailyStats.update({
         where: {

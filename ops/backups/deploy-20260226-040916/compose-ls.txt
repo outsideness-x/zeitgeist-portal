@@ -1,0 +1,3 @@
+NAME                STATUS              CONFIG FILES
+zeitgeist-ghost     running(2)          /opt/zeitgeist/ghost/docker-compose.yml
+zeitgeist-portal    running(6)          /home/deploy/apps/zeitgeist-portal/docker-compose.yml

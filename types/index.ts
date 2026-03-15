@@ -4,6 +4,12 @@ export interface Author {
   avatar?: string;
 }
 
+export interface ArticleCarouselImage {
+  src: string;
+  alt?: string;
+  captionHtml?: string;
+}
+
 export interface Article {
   id: string;
   internalArticleId?: string;

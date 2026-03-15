@@ -9,6 +9,7 @@ vi.mock('../src/lib/storage.js', () => {
     createSubmissionStorageKey: (submissionId: string) => `submissions/${submissionId}/mock.pdf`,
     createPresignedPutUrl: async () => 'http://upload.local/presigned-put',
     createPresignedGetUrl: async () => 'http://download.local/presigned-get',
+    putStoredObject: async () => undefined,
     headStoredObject: async () => ({
       ContentLength: 2048,
       ContentType: 'application/pdf',
@@ -39,7 +40,24 @@ process.env.MAX_APPLAUSE_PER_USER_PER_ARTICLE = process.env.MAX_APPLAUSE_PER_USE
 process.env.CONTENT_PROVIDER = process.env.CONTENT_PROVIDER ?? 'local';
 process.env.PUBLISH_PROVIDER = process.env.PUBLISH_PROVIDER ?? 'local';
 
-const canRun = Boolean(process.env.DATABASE_URL);
+const isSafeTestDatabaseUrl = (value: string | undefined): boolean => {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(value);
+    const dbName = parsed.pathname.replace(/^\/+/, '');
+    return /test/i.test(dbName);
+  } catch {
+    return /test/i.test(value);
+  }
+};
+
+const canRun = (
+  process.env.RUN_INTEGRATION_TESTS === '1' &&
+  isSafeTestDatabaseUrl(process.env.DATABASE_URL)
+);
 
 describe.skipIf(!canRun)('backend integration', () => {
   const app = buildServer();
@@ -173,6 +191,80 @@ describe.skipIf(!canRun)('backend integration', () => {
 
     expect(removeResponse.status).toBe(200);
     expect(removeResponse.body.bookmarked).toBe(false);
+  });
+
+  it('bookmark add status remove endpoints are idempotent and auth-protected', async () => {
+    const articleId = await ensureArticle('bookmark-idempotent');
+
+    const unauthorizedStatus = await request
+      .get(`/api/me/bookmarks/status?articleId=${encodeURIComponent(articleId)}`);
+
+    expect(unauthorizedStatus.status).toBe(401);
+
+    const unauthorizedAdd = await request
+      .post('/api/me/bookmarks')
+      .send({ articleId });
+
+    expect(unauthorizedAdd.status).toBe(401);
+
+    const identity = await registerUser(`bookmark-idempotent-${randomUUID()}@example.com`);
+
+    const firstAddResponse = await request
+      .post('/api/me/bookmarks')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({ articleId });
+
+    expect(firstAddResponse.status).toBe(201);
+    expect(firstAddResponse.body.bookmarked).toBe(true);
+
+    const secondAddResponse = await request
+      .post('/api/me/bookmarks')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({ articleId });
+
+    expect(secondAddResponse.status).toBe(200);
+    expect(secondAddResponse.body.bookmarked).toBe(true);
+
+    const savedRowsCount = await app.prisma.bookmark.count({
+      where: {
+        userId: identity.user.id,
+        articleId,
+      },
+    });
+
+    expect(savedRowsCount).toBe(1);
+
+    const statusAfterAdd = await request
+      .get(`/api/me/bookmarks/status?articleId=${encodeURIComponent(articleId)}`)
+      .set('Cookie', identity.cookies);
+
+    expect(statusAfterAdd.status).toBe(200);
+    expect(statusAfterAdd.body.bookmarked).toBe(true);
+
+    const firstDeleteResponse = await request
+      .delete(`/api/me/bookmarks/${articleId}`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken);
+
+    expect(firstDeleteResponse.status).toBe(200);
+    expect(firstDeleteResponse.body.bookmarked).toBe(false);
+
+    const secondDeleteResponse = await request
+      .delete(`/api/me/bookmarks/${articleId}`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken);
+
+    expect(secondDeleteResponse.status).toBe(200);
+    expect(secondDeleteResponse.body.bookmarked).toBe(false);
+
+    const statusAfterDelete = await request
+      .get(`/api/me/bookmarks/status?articleId=${encodeURIComponent(articleId)}`)
+      .set('Cookie', identity.cookies);
+
+    expect(statusAfterDelete.status).toBe(200);
+    expect(statusAfterDelete.body.bookmarked).toBe(false);
   });
 
   it('reaction set update and clear flow works', async () => {
@@ -444,6 +536,180 @@ describe.skipIf(!canRun)('backend integration', () => {
     expect(listResponse.status).toBe(200);
     expect(Array.isArray(listResponse.body.items)).toBe(true);
     expect(listResponse.body.items.length).toBe(1);
+  });
+
+  it('submission relay upload accepts pdf bytes and rejects invalid mime', async () => {
+    const identity = await registerUser(`author-relay-${randomUUID()}@example.com`, 'author relay');
+
+    const createSubmissionResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({
+        title: 'relay submission',
+        keywords: 'relay,upload',
+        abstract: 'this abstract validates backend relay upload behavior with mime guards and completion.',
+        requestedSection: 'research',
+      });
+
+    expect(createSubmissionResponse.status).toBe(201);
+    const submissionId = createSubmissionResponse.body.submission.id as string;
+
+    const uploadInitResponse = await request
+      .post(`/api/submissions/${submissionId}/upload/init`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({ originalName: 'relay.pdf' });
+
+    expect(uploadInitResponse.status).toBe(200);
+
+    const relayUploadResponse = await request
+      .post(`/api/submissions/${submissionId}/upload/file?storageKey=${encodeURIComponent(uploadInitResponse.body.storageKey as string)}`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .set('content-type', 'application/pdf')
+      .send(Buffer.from('%PDF-1.7\n'));
+
+    expect(relayUploadResponse.status).toBe(201);
+
+    const invalidMimeResponse = await request
+      .post(`/api/submissions/${submissionId}/upload/file?storageKey=${encodeURIComponent(uploadInitResponse.body.storageKey as string)}`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .set('content-type', 'text/plain')
+      .send('not-pdf');
+
+    expect(invalidMimeResponse.status).toBe(400);
+
+    const uploadCompleteResponse = await request
+      .post(`/api/submissions/${submissionId}/upload/complete`)
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({
+        storageKey: uploadInitResponse.body.storageKey,
+        originalName: 'relay.pdf',
+      });
+
+    expect(uploadCompleteResponse.status).toBe(200);
+  });
+
+  it('submission create enforces auth and payload validation', async () => {
+    const unauthorizedCreate = await request
+      .post('/api/submissions')
+      .send({
+        title: 'unauthorized submission',
+        keywords: 'validation',
+        abstract: 'this abstract is long enough for the validation scenario to run.',
+      });
+
+    expect(unauthorizedCreate.status).toBe(401);
+
+    const identity = await registerUser(`submission-validation-${randomUUID()}@example.com`, 'submission validation');
+
+    const invalidPayloadResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({
+        title: 'x',
+        keywords: '',
+        abstract: 'short',
+      });
+
+    expect(invalidPayloadResponse.status).toBe(400);
+  });
+
+  it('submission create is idempotent by author and clientRequestId', async () => {
+    const identity = await registerUser(`submission-idempotent-${randomUUID()}@example.com`, 'idempotent author');
+    const clientRequestId = `submission-${randomUUID()}`;
+
+    const basePayload = {
+      title: 'idempotent submission',
+      keywords: 'idempotent,submission',
+      abstract: 'this abstract validates idempotent submission creation behavior for duplicate retries.',
+      requestedSection: 'research',
+      clientRequestId,
+    };
+
+    const firstCreateResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send(basePayload);
+
+    expect(firstCreateResponse.status).toBe(201);
+    const submissionId = firstCreateResponse.body.submission.id as string;
+
+    const secondCreateResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send(basePayload);
+
+    expect(secondCreateResponse.status).toBe(200);
+    expect(secondCreateResponse.body.idempotent).toBe(true);
+    expect(secondCreateResponse.body.submission.id).toBe(submissionId);
+
+    const conflictingReuseResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', identity.cookies)
+      .set('x-csrf-token', identity.csrfToken)
+      .send({
+        ...basePayload,
+        title: 'changed title',
+      });
+
+    expect(conflictingReuseResponse.status).toBe(409);
+    expect(conflictingReuseResponse.body.code).toBe('idempotency_key_reuse');
+
+    const savedRowsCount = await app.prisma.submission.count({
+      where: {
+        authorUserId: identity.user.id,
+      },
+    });
+
+    expect(savedRowsCount).toBe(1);
+  });
+
+  it('submission detail is isolated to owner while admin queue sees all submissions', async () => {
+    const authorIdentity = await registerUser(`submission-owner-${randomUUID()}@example.com`, 'owner');
+    const outsiderIdentity = await registerUser(`submission-outsider-${randomUUID()}@example.com`, 'outsider');
+    const adminIdentity = await registerUser(`submission-admin-${randomUUID()}@example.com`, 'submission admin');
+
+    await app.prisma.user.update({
+      where: {
+        id: adminIdentity.user.id,
+      },
+      data: {
+        role: 'ADMIN',
+      },
+    });
+
+    const createSubmissionResponse = await request
+      .post('/api/submissions')
+      .set('Cookie', authorIdentity.cookies)
+      .set('x-csrf-token', authorIdentity.csrfToken)
+      .send({
+        title: 'owner submission',
+        keywords: 'owner,permissions',
+        abstract: 'this abstract validates owner isolation and admin visibility for submission records.',
+      });
+
+    expect(createSubmissionResponse.status).toBe(201);
+    const submissionId = createSubmissionResponse.body.submission.id as string;
+
+    const outsiderDetail = await request
+      .get(`/api/submissions/me/${submissionId}`)
+      .set('Cookie', outsiderIdentity.cookies);
+
+    expect(outsiderDetail.status).toBe(403);
+
+    const adminQueueResponse = await request
+      .get('/api/admin/submissions?page=1&pageSize=50')
+      .set('Cookie', adminIdentity.cookies);
+
+    expect(adminQueueResponse.status).toBe(200);
+    expect(adminQueueResponse.body.items.some((item: { id: string }) => item.id === submissionId)).toBe(true);
   });
 
   it('admin approve publishes and promotes author role', async () => {
