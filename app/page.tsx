@@ -31,7 +31,7 @@ export default async function Home() {
             <h1 className="font-display text-[12vw] leading-none tracking-tighter uppercase">Zeitgeist</h1>
             <p className="mt-8 font-serif text-2xl md:text-4xl font-light italic">
               &quot;Дух времени.&quot; Исследуем историю, культуру и
-              <span className="text-accent"> рукописи Востока</span>.
+              <span> рукописи Востока</span>.
             </p>
           </div>
         </FadeIn>
