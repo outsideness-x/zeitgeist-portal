@@ -23,6 +23,7 @@ export const Header: React.FC = () => {
     { href: '/research', label: 'Исследования' },
     { href: '/journal', label: 'Журнал' },
     { href: '/library', label: 'Библиотека' },
+    { href: '/products', label: 'Товары' },
     { href: '/nova-express', label: 'Nova' },
     { href: '/team', label: 'Команда' },
   ];
@@ -35,7 +36,13 @@ export const Header: React.FC = () => {
     ]
     : baseNavItems;
 
-  const isActive = (path: string) => pathname === path ? "text-accent border-b border-accent" : "text-ink hover:text-accent transition-colors dark:text-gray-300 dark:hover:text-white";
+  const isItemActive = (path: string) => {
+    return pathname === path || pathname.startsWith(`${path}/`);
+  };
+
+  const getNavItemClassName = (path: string) => isItemActive(path)
+    ? "text-accent border-b border-accent"
+    : "text-ink hover:text-accent transition-colors dark:text-gray-300 dark:hover:text-white";
 
   const closeMenu = () => {
     setMenuOpen(false);
@@ -143,8 +150,8 @@ export const Header: React.FC = () => {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={isActive(item.href)}
-                  aria-current={pathname === item.href ? 'page' : undefined}
+                  className={getNavItemClassName(item.href)}
+                  aria-current={isItemActive(item.href) ? 'page' : undefined}
                   onClick={() => setMenuOpen(false)}
                 >
                   {item.label}
@@ -213,8 +220,8 @@ export const Header: React.FC = () => {
                     key={item.href}
                     href={item.href}
                     ref={index === 0 ? firstNavLinkRef : undefined}
-                    className={isActive(item.href)}
-                    aria-current={pathname === item.href ? 'page' : undefined}
+                    className={getNavItemClassName(item.href)}
+                    aria-current={isItemActive(item.href) ? 'page' : undefined}
                     onClick={closeMenu}
                   >
                     {item.label}
