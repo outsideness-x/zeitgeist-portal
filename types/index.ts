@@ -61,3 +61,23 @@ export interface LibraryBook {
   publishedYear: string;
   language: string;
 }
+
+export interface ProductContactInfo {
+  telegram?: string;
+  email?: string;
+}
+
+export interface Product {
+  id: string;
+  slug: string;
+  title: string;
+  categoryLabel: string;
+  shortDescription: string;
+  fullDescription: string;
+  imageSrc?: string | null;
+  imageAlt?: string;
+  priceLabel?: string;
+  paymentMethods: string[];
+  contacts: ProductContactInfo;
+  ctaLabel?: string;
+}
