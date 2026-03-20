@@ -62,7 +62,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
           <span>{readingTime}</span>
         </div>
 
-        <h3 className={`${titleSizeClass} font-display leading-[0.95] tracking-tight text-white`}>
+        <h3 className={`${titleSizeClass} font-display leading-[1] tracking-tight text-white`}>
           {article.title}
         </h3>
 
