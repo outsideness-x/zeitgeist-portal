@@ -19,7 +19,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
     day: 'numeric',
   });
   const readingTime = article.reading_time ? `${article.reading_time} мин чтения` : 'Короткое чтение';
-  const titleSizeClass = featured ? 'text-3xl md:text-5xl' : 'text-3xl md:text-4xl';
+  const titleSizeClass = featured ? 'text-2xl sm:text-3xl md:text-5xl' : 'text-2xl sm:text-3xl md:text-4xl';
 
   const getBadgeColor = (type: string) => {
     switch (type) {
@@ -32,7 +32,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
   return (
     <Link
       href={`/article/${article.id}`}
-      className="group relative block h-[400px] overflow-hidden rounded-2xl bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="group relative block h-[420px] overflow-hidden rounded-2xl bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:h-[400px]"
     >
       <ContentImage
         src={article.feature_image}
@@ -49,24 +49,24 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/35 to-transparent transition-colors duration-500 group-hover:from-black group-hover:via-black/50" />
 
-      <div className="absolute left-0 top-0 p-6">
+      <div className="absolute left-0 top-0 p-4 sm:p-6">
         <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-sans uppercase tracking-[0.18em] ${getBadgeColor(article.type)}`}>
           {article.type === 'nova' ? 'Nova Express' : article.type === 'research' ? 'исследование' : 'журнал'}
         </span>
       </div>
 
-      <div className="absolute bottom-0 left-0 w-full p-8 text-white translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-        <div className="mb-4 flex items-center gap-2 text-[11px] font-sans uppercase tracking-[0.18em] text-gray-300">
+      <div className="absolute bottom-0 left-0 w-full p-5 text-white transition-transform duration-500 sm:p-8 md:translate-y-4 md:group-hover:translate-y-0">
+        <div className="mb-3 flex items-center gap-2 text-[11px] font-sans uppercase tracking-[0.18em] text-gray-300 sm:mb-4">
           <span>{formattedDate}</span>
           <span>&bull;</span>
           <span>{readingTime}</span>
         </div>
 
-        <h3 className={`${titleSizeClass} font-display leading-[0.95] tracking-tight text-white`}>
+        <h3 className={`${titleSizeClass} line-clamp-5 pt-1 font-display leading-[1.12] tracking-tight text-white md:line-clamp-none md:pt-0 md:leading-[0.95]`}>
           {article.title}
         </h3>
 
-        <p className="mt-3 text-sm font-sans italic text-gray-300">
+        <p className="mt-2 text-sm font-sans italic text-gray-300 sm:mt-3">
           Автор: <span className="not-italic font-semibold text-white">{authorName}</span>
         </p>
 
