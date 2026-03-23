@@ -50,15 +50,15 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           </h2>
         </Link>
 
-        <p className="font-sans text-sm text-gray-600 dark:text-gray-400 line-clamp-4 leading-relaxed">
-          {product.shortDescription}
-        </p>
-
         {product.priceLabel ? (
-          <p className="mt-4 font-sans text-sm uppercase tracking-wider text-ink dark:text-gray-200">
+          <p className="mb-3 font-sans text-sm uppercase tracking-wider text-accent">
             {product.priceLabel}
           </p>
         ) : null}
+
+        <p className="font-sans text-base leading-7 text-gray-600 dark:text-gray-400 line-clamp-4">
+          {product.shortDescription}
+        </p>
 
         <div className="mt-6">
           <Link

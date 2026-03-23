@@ -93,7 +93,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 ) : null}
               </div>
 
-              <div className="prose prose-stone dark:prose-invert font-serif mb-10 text-gray-700 dark:text-gray-300 leading-relaxed">
+              <div className="prose prose-stone prose-lg md:prose-xl dark:prose-invert mb-10 max-w-none font-serif text-gray-700 dark:text-gray-300 prose-p:leading-[1.9] prose-p:text-[1.12rem] md:prose-p:text-[1.28rem] prose-p:mb-7">
                 {descriptionParagraphs.map((paragraph) => (
                   <p key={paragraph}>{paragraph}</p>
                 ))}
