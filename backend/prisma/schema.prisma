@@ -42,6 +42,16 @@ enum ReactionType {
   CELEBRATE
 }
 
+enum DiscussionTargetType {
+  ARTICLE
+  PRODUCT
+}
+
+enum AdminNotificationType {
+  ARTICLE_COMMENT
+  PRODUCT_REVIEW
+}
+
 enum AuthProvider {
   GOOGLE
 }
@@ -81,6 +91,10 @@ model User {
   articleApplause ArticleApplause[]
   reviewMessages  ReviewMessage[] @relation("review_admin")
   auditLogs       AuditLog[]     @relation("audit_actor")
+  discussionEntries DiscussionEntry[] @relation("discussion_author")
+  discussionLikes DiscussionLike[]
+  adminNotificationsReceived AdminNotification[] @relation("admin_notification_recipient")
+  adminNotificationsTriggered AdminNotification[] @relation("admin_notification_actor")
 }
 
 model Session {
@@ -354,6 +368,66 @@ model ArticleDailyVisitor {
 
   @@unique([articleId, date, visitorId])
   @@index([date])
+}
+
+model DiscussionEntry {
+  id          String               @id @default(cuid())
+  targetType  DiscussionTargetType
+  targetId    String
+  parentId    String?
+  depth       Int                  @default(0)
+  authorUserId String
+  content     String
+  isDeleted   Boolean              @default(false)
+  deletedAt   DateTime?
+  likeCount   Int                  @default(0)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  author      User                 @relation("discussion_author", fields: [authorUserId], references: [id], onDelete: Cascade)
+  parent      DiscussionEntry?     @relation("discussion_replies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     DiscussionEntry[]    @relation("discussion_replies")
+  likes       DiscussionLike[]
+  notifications AdminNotification[]
+
+  @@index([targetType, targetId, createdAt])
+  @@index([parentId])
+  @@index([authorUserId])
+  @@index([isDeleted, targetType, targetId])
+}
+
+model DiscussionLike {
+  id        String          @id @default(cuid())
+  entryId   String
+  userId    String
+  createdAt DateTime        @default(now())
+  entry     DiscussionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, userId])
+  @@index([userId])
+  @@index([entryId])
+}
+
+model AdminNotification {
+  id                  String                @id @default(cuid())
+  recipientAdminUserId String
+  actorUserId         String?
+  discussionEntryId   String
+  type                AdminNotificationType
+  targetType          DiscussionTargetType
+  targetId            String
+  textPreview         String
+  isRead              Boolean               @default(false)
+  readAt              DateTime?
+  createdAt           DateTime              @default(now())
+  recipientAdmin      User                  @relation("admin_notification_recipient", fields: [recipientAdminUserId], references: [id], onDelete: Cascade)
+  actor               User?                 @relation("admin_notification_actor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  discussionEntry     DiscussionEntry       @relation(fields: [discussionEntryId], references: [id], onDelete: Cascade)
+
+  @@index([recipientAdminUserId, isRead, createdAt])
+  @@index([discussionEntryId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }
 
 model AuditLog {

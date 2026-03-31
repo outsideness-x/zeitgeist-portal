@@ -149,7 +149,7 @@ export const BookmarkButton = ({ article }: BookmarkButtonProps): JSX.Element =>
     return () => {
       active = false;
     };
-  }, [authLoading, ensurePayload, user?.id]);
+  }, [authLoading, ensurePayload, user]);
 
   const handleToggle = async (): Promise<void> => {
     if (authLoading || isLoading || isSubmitting) {

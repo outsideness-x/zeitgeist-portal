@@ -1,26 +1,36 @@
 import type { Metadata } from "next";
-import { Cinzel, Cormorant_Garamond, Lato } from "next/font/google";
+import { IBM_Plex_Mono, Manrope, Merriweather, Prata } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Providers } from "./providers"; // provider import
 
-const cinzel = Cinzel({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-cinzel",
+const prata = Prata({
+  weight: "400",
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+  variable: "--font-prata",
 });
 
-const cormorant = Cormorant_Garamond({
-  weight: ["400", "500", "600", "700"],
+const merriweather = Merriweather({
+  weight: ["300", "400", "700"],
   style: ["normal", "italic"],
-  subsets: ["latin", "latin-ext", "cyrillic", "cyrillic-ext"],
-  variable: "--font-cormorant",
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  display: "swap",
+  variable: "--font-merriweather",
 });
 
-const lato = Lato({
-  weight: ["400", "700"],
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-lato",
+const manrope = Manrope({
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  display: "swap",
+  variable: "--font-manrope",
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  weight: ["400", "500", "600"],
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  display: "swap",
+  variable: "--font-ibm-plex-mono",
 });
 
 export const metadata: Metadata = {
@@ -38,9 +48,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="ru"
       suppressHydrationWarning
-      className={`${cinzel.variable} ${cormorant.variable} ${lato.variable}`}
+      className={`${prata.variable} ${merriweather.variable} ${manrope.variable} ${ibmPlexMono.variable}`}
     >
-      <body className="bg-paper text-ink font-serif flex flex-col min-h-screen antialiased transition-colors duration-300">
+      <body className="bg-paper text-ink font-serif flex min-h-screen flex-col antialiased transition-colors duration-300">
         <div className="noise-overlay"></div>
         <Providers>
           <Header />

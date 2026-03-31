@@ -1,5 +1,7 @@
 "use client";
 
+import Image from 'next/image';
+
 type UserAvatarProps = {
   name: string;
   avatarUrl?: string | null;
@@ -29,17 +31,18 @@ export const UserAvatar = ({
 
   return (
     <div
-      className={`${sizeClassName} overflow-hidden rounded-full bg-accent text-white flex items-center justify-center font-bold ${textClassName} ${className}`.trim()}
+      className={`${sizeClassName} relative overflow-hidden rounded-full bg-accent text-white flex items-center justify-center font-bold ${textClassName} ${className}`.trim()}
       aria-label={alt ?? `Аватар пользователя ${name}`}
       title={name}
     >
       {avatarUrl ? (
-        <img
+        <Image
           src={avatarUrl}
           alt={alt ?? `Аватар пользователя ${name}`}
-          className="h-full w-full object-cover"
-          loading="lazy"
-          decoding="async"
+          fill
+          sizes="32px"
+          className="object-cover"
+          unoptimized
         />
       ) : (
         <span aria-hidden="true">{fallbackLetter}</span>

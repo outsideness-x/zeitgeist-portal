@@ -26,16 +26,19 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
   });
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-16">
-      <div className="border-b-4 border-double border-gray-200 pb-8 mb-12 text-center">
-        <h1 className="font-display text-6xl mb-2">Журнал</h1>
-        <span className="font-serif italic text-gray-400">Эссе об искусстве, истории и литературе</span>
-      </div>
+    <div className="page-shell-narrow py-16 sm:py-20">
+      <section className="site-panel overflow-hidden rounded-[clamp(1.75rem,3vw,2rem)] bg-[radial-gradient(circle_at_top_left,rgba(141,67,57,0.1),transparent_36%)] px-5 py-10 sm:px-10 sm:py-14">
+        <p className="section-kicker">редакционный раздел</p>
+        <h1 className="section-title">Журнал</h1>
+        <p className="section-lead max-w-2xl">
+          Эссе об искусстве, истории и литературе Востока. Более спокойная сетка и крупнее набранный текст делают вход в материалы легче и на мобильных, и на больших экранах.
+        </p>
+      </section>
 
-      <div className="space-y-12">
+      <div className="mt-10 space-y-10">
         {articles.items.length > 0 ? (
           articles.items.map((article, idx) => (
-            <div key={article.id} className={idx !== articles.items.length - 1 ? "border-b border-gray-200 pb-12" : ""}>
+            <div key={article.id} className={idx !== articles.items.length - 1 ? "border-b border-[color:var(--line-soft)] pb-10" : ""}>
               <ArticleCard article={article} featured={true} routePath="/journal" />
             </div>
           ))
@@ -52,21 +55,21 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         )}
       </div>
 
-      <div className="mt-12 flex items-center justify-between">
+      <div className="pagination-shell">
         <Link
           href={page > 1 ? `/journal?page=${page - 1}` : '#'}
           aria-disabled={page <= 1}
-          className={`px-4 py-2 border border-sepia text-sm uppercase tracking-wider ${page <= 1 ? 'pointer-events-none opacity-40' : 'hover:border-accent'}`}
+          className="pagination-link"
         >
           Назад
         </Link>
-        <span className="text-sm text-gray-500">
+        <span className="font-sans text-[0.74rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">
           Страница {articles.page} из {articles.totalPages}
         </span>
         <Link
           href={page < articles.totalPages ? `/journal?page=${page + 1}` : '#'}
           aria-disabled={page >= articles.totalPages}
-          className={`px-4 py-2 border border-sepia text-sm uppercase tracking-wider ${page >= articles.totalPages ? 'pointer-events-none opacity-40' : 'hover:border-accent'}`}
+          className="pagination-link"
         >
           Вперед
         </Link>

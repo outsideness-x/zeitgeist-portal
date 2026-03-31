@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { ContentImage } from '@/components/ContentImage';
+import { ProductReviewsSection } from '@/components/discussion/DiscussionThread';
 import { getProductBySlug, getProductDescriptionParagraphs, getProducts } from '@/services/products';
 
 type Props = {
@@ -183,6 +184,8 @@ export default async function ProductDetailPage({ params }: Props) {
             </div>
           </div>
         </div>
+
+        <ProductReviewsSection productSlug={product.slug} />
       </div>
     </div>
   );

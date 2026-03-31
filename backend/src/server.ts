@@ -16,6 +16,7 @@ import { registerAnalyticsRoutes } from './routes/analytics.js';
 import { registerSubmissionRoutes } from './routes/submissions.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerWebhookRoutes } from './routes/webhooks.js';
+import { registerDiscussionRoutes } from './routes/discussions.js';
 
 export const buildServer = () => {
   const env = getEnv();
@@ -84,6 +85,7 @@ export const buildServer = () => {
   app.register(registerAnalyticsRoutes);
   app.register(registerSubmissionRoutes);
   app.register(registerAdminRoutes);
+  app.register(registerDiscussionRoutes);
   app.register(registerWebhookRoutes);
 
   app.setErrorHandler((error, request, reply) => {

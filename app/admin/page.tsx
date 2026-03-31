@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
+import { AdminNotificationsPanel } from '@/components/admin/AdminNotificationsPanel';
 import { backendRequest } from '@/services/backend/client';
 
 type SubmissionQueueItem = {
@@ -269,6 +270,8 @@ export default function AdminPage() {
 
       {errorMessage && <p className="mb-4 text-sm text-red-600">{errorMessage}</p>}
       {successMessage && <p className="mb-4 text-sm text-green-700">{successMessage}</p>}
+
+      <AdminNotificationsPanel csrfToken={csrfToken} />
 
       <div className="grid items-start gap-6 lg:grid-cols-[340px_1fr]">
         <aside className="min-w-0 overflow-hidden border border-sepia bg-card-bg">

@@ -5,6 +5,7 @@ import { LikeButton } from '@/components/LikeButton';
 import { BookmarkButton } from '@/components/BookmarkButton';
 import { ImageCarousel } from '@/components/ImageCarousel';
 import { ContentImage } from '@/components/ContentImage';
+import { ArticleCommentsSection } from '@/components/discussion/DiscussionThread';
 import { buildArticleContentBlocks } from '@/services/content/articleHtmlBlocks';
 import type { ArticleCarouselImage } from '@/types';
 
@@ -118,121 +119,161 @@ export default async function ArticlePage({ params }: Props) {
       ? buildArticleContentBlocks(safeHtml, article.title)
       : [{ type: 'html' as const, html: safeHtml }]
     : [];
+  const isNovaArticle = article.type === 'nova';
+  const articleBadgeClass = isNovaArticle
+    ? 'border border-[#58f29d]/28 bg-black text-[#97ffbf]'
+    : article.type === 'research'
+      ? 'bg-[#232048]/86 text-white'
+      : 'bg-accent text-white';
 
   return (
-    <article className="pb-20 min-h-screen bg-paper dark:bg-card-bg transition-colors duration-300">
+    <article className="min-h-screen bg-paper pb-24 transition-colors duration-300 dark:bg-card-bg">
       <div
-        className={`bg-paper dark:bg-card-bg py-20 px-4 text-center ${
-          heroImage ? '' : 'border-b border-sepia dark:border-gray-800'
+        className={`border-b border-[color:var(--line-soft)] px-4 py-16 sm:py-20 ${
+          isNovaArticle
+            ? 'bg-[radial-gradient(circle_at_top,rgba(88,242,157,0.09),transparent_34%)]'
+            : 'bg-[radial-gradient(circle_at_top,rgba(141,67,57,0.08),transparent_36%)]'
         }`}
       >
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-center gap-2 mb-6">
-            <span className={`px-3 py-1 text-xs font-sans uppercase tracking-widest text-white ${article.type === 'nova' ? 'bg-black border border-green-500 text-green-500' : 'bg-accent'}`}>
+        <div className="page-shell-narrow">
+          <div className="site-panel rounded-[2rem] px-5 py-8 text-center sm:px-8 sm:py-12 lg:px-10 lg:py-14">
+            <div className="flex justify-center gap-2">
+              <span className={`inline-flex rounded-full px-3 py-1 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] ${articleBadgeClass}`}>
               {article.type === 'nova' ? 'Nova Express' : article.type === 'research' ? 'исследование' : 'журнал'}
-            </span>
-          </div>
-          <h1 className="font-display text-4xl md:text-6xl mb-6 leading-tight dark:text-gray-100">{article.title}</h1>
-          <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="font-serif text-lg text-gray-500 italic">
-              Автор: <span className="text-ink dark:text-gray-300 not-italic font-bold">{authorName}</span> &mdash; {formattedDate} &mdash; {readingTime}
+              </span>
             </div>
-            <div className="flex items-center gap-2 md:gap-3">
-              <BookmarkButton
-                article={{
-                  id: article.id,
-                  source: article.source,
-                  externalId: article.externalId,
-                  slug: article.slug,
-                  canonicalPath: article.canonicalPath,
-                  title: article.title,
-                  excerpt: article.excerpt,
-                  feature_image: article.feature_image,
-                  type: article.type,
-                }}
-              />
-              <LikeButton
-                article={{
-                  id: article.id,
-                  source: article.source,
-                  externalId: article.externalId,
-                  slug: article.slug,
-                  canonicalPath: article.canonicalPath,
-                  title: article.title,
-                  excerpt: article.excerpt,
-                  feature_image: article.feature_image,
-                  type: article.type,
-                }}
-                baseCount={article.baseLikeCount ?? 0}
-              />
+            <h1 className="mx-auto mt-6 max-w-4xl font-display text-[clamp(2.25rem,7vw,4.75rem)] leading-[0.98] tracking-[-0.035em] text-ink dark:text-gray-100">
+              {article.title}
+            </h1>
+            <p className="mx-auto mt-5 max-w-3xl font-serif text-[clamp(1rem,2vw,1.18rem)] leading-relaxed text-[color:var(--muted)] dark:text-gray-300">
+              {article.excerpt}
+            </p>
+
+            <div className="mt-8 flex flex-col gap-6 border-t border-[color:var(--line-soft)] pt-6 lg:flex-row lg:items-end lg:justify-between">
+              <div className="space-y-3 text-left">
+                <p className="font-sans text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">
+                  Автор
+                </p>
+                <p className="font-serif text-[1.08rem] leading-relaxed text-ink dark:text-gray-100">
+                  {authorName}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="meta-pill">{formattedDate}</span>
+                  <span className="meta-pill">{readingTime}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 md:gap-3">
+                <BookmarkButton
+                  article={{
+                    id: article.id,
+                    source: article.source,
+                    externalId: article.externalId,
+                    slug: article.slug,
+                    canonicalPath: article.canonicalPath,
+                    title: article.title,
+                    excerpt: article.excerpt,
+                    feature_image: article.feature_image,
+                    type: article.type,
+                  }}
+                />
+                <LikeButton
+                  article={{
+                    id: article.id,
+                    source: article.source,
+                    externalId: article.externalId,
+                    slug: article.slug,
+                    canonicalPath: article.canonicalPath,
+                    title: article.title,
+                    excerpt: article.excerpt,
+                    feature_image: article.feature_image,
+                    type: article.type,
+                  }}
+                  baseCount={article.baseLikeCount ?? 0}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {heroImage && (
-        <div className="relative h-[50vh] w-full overflow-hidden md:h-[70vh]">
-           <ContentImage
-             src={heroImage}
-             alt={article.title}
-             route="/article"
-             component="ArticleHero"
-             articleId={article.id}
-             fill
-             priority
-             sizes="100vw"
-             className="object-cover object-center md:object-contain"
-             fallbackClassName="flex h-full items-center justify-center bg-sepia px-6 text-center font-sans text-sm uppercase tracking-widest text-gray-600"
-             fallbackLabel="обложка статьи недоступна"
-           />
-           <div className="absolute inset-0 bg-gradient-to-t from-paper dark:from-[#121212] to-transparent h-20 bottom-0 top-auto"></div>
+        <div className="page-shell-narrow mt-10">
+          <div className="relative aspect-[16/10] overflow-hidden rounded-[2rem] border border-[color:var(--line-soft)] bg-[color:var(--surface-raised)] shadow-[var(--shadow-card)] dark:bg-[color:var(--surface-strong)] lg:aspect-[16/9]">
+            <ContentImage
+              src={heroImage}
+              alt={article.title}
+              route="/article"
+              component="ArticleHero"
+              articleId={article.id}
+              fill
+              priority
+              sizes="100vw"
+              fitMode="adaptive"
+              surfaceTone="light"
+              fallbackClassName="flex h-full items-center justify-center bg-sepia px-6 text-center font-sans text-sm uppercase tracking-widest text-gray-600"
+              fallbackLabel="обложка статьи недоступна"
+            />
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-paper dark:from-[#121212] to-transparent"></div>
+          </div>
         </div>
       )}
 
       {hasCarousel && (
-        <div className="max-w-4xl mx-auto px-4 mt-10">
+        <div className="page-shell-narrow mt-10">
           <ImageCarousel images={carouselItems} alt={article.title} />
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto px-4 mt-10">
-        <div className="prose prose-xl prose-stone dark:prose-invert font-serif mx-auto first-letter:text-5xl first-letter:font-display first-letter:float-left first-letter:mr-3 first-letter:mt-2">
-           
-           <p className="lead text-xl text-gray-700 dark:text-gray-300 mb-6">{article.excerpt}</p>
-           
-           {article.html ? (
-             articleContentBlocks.map((block, index) => (
-               block.type === 'html'
-                 ? <div key={`html-${index}`} dangerouslySetInnerHTML={{ __html: block.html }} />
-                 : (
-                   <div key={`carousel-${index}`} className="not-prose">
-                     <ImageCarousel images={block.images} alt={article.title} fit="contain" />
-                   </div>
-                 )
-             ))
-           ) : (
-             <>
-               <p>
-                 Этот материал находится в процессе подготовки. Мы обновляем архивные записи, чтобы
-                 вы получали корректные источники, примечания и контекст исследования.
-               </p>
-               <h3 className="font-display text-2xl mt-8 mb-4">Исторический контекст</h3>
-               <p>
-                 Публикация будет дополнена проверенными фрагментами и комментариями редакции сразу
-                 после финальной научной вычитки.
-               </p>
-               <blockquote className="border-l-4 border-accent pl-6 italic text-gray-600 dark:text-gray-400 my-8">
-                 &quot;Архивы говорят с теми, кто умеет слушать.&quot;
-               </blockquote>
-               <p>
-                 Если вам нужен ранний доступ к источникам, свяжитесь с редакцией через раздел
-                 контактов.
-               </p>
-             </>
-           )}
+      <div className="reading-shell mt-12">
+        <div className="prose prose-lg md:prose-xl prose-stone dark:prose-invert mx-auto max-w-none font-serif first-letter:float-left first-letter:mr-3 first-letter:mt-2 first-letter:font-display first-letter:text-5xl">
+          {article.html ? (
+            articleContentBlocks.map((block, index) => (
+              block.type === 'html'
+                ? <div key={`html-${index}`} dangerouslySetInnerHTML={{ __html: block.html }} />
+                : (
+                  <div key={`carousel-${index}`} className="not-prose">
+                    <ImageCarousel images={block.images} alt={article.title} fit="contain" />
+                  </div>
+                )
+            ))
+          ) : (
+            <>
+              <p>
+                Этот материал находится в процессе подготовки. Мы обновляем архивные записи, чтобы
+                вы получали корректные источники, примечания и контекст исследования.
+              </p>
+              <h3>Исторический контекст</h3>
+              <p>
+                Публикация будет дополнена проверенными фрагментами и комментариями редакции сразу
+                после финальной научной вычитки.
+              </p>
+              <blockquote>
+                &quot;Архивы говорят с теми, кто умеет слушать.&quot;
+              </blockquote>
+              <p>
+                Если вам нужен ранний доступ к источникам, свяжитесь с редакцией через раздел
+                контактов.
+              </p>
+            </>
+          )}
         </div>
-
       </div>
+
+      <ArticleCommentsSection
+        article={{
+          id: article.id,
+          internalArticleId: article.internalArticleId,
+          source: article.source,
+          externalId: article.externalId,
+          slug: article.slug,
+          canonicalPath: article.canonicalPath,
+          title: article.title,
+          excerpt: article.excerpt,
+          type: article.type,
+          feature_image: article.feature_image,
+        }}
+      />
     </article>
   );
 }

@@ -14,7 +14,7 @@ type ImageCarouselProps = {
 export const ImageCarousel = ({ images, alt, fit = 'cover' }: ImageCarouselProps): JSX.Element | null => {
   const [activeIndex, setActiveIndex] = useState(0);
   const pointerStartX = useRef<number | null>(null);
-  const imageClassName = fit === 'contain' ? 'object-contain' : 'object-cover';
+  const fitMode = fit === 'contain' ? 'contain' : 'adaptive';
 
   if (images.length === 0) {
     return null;
@@ -25,7 +25,7 @@ export const ImageCarousel = ({ images, alt, fit = 'cover' }: ImageCarouselProps
   if (images.length === 1) {
     return (
       <section className="mt-8" aria-label="изображение статьи">
-        <div className="relative h-[34vh] sm:h-[40vh] md:h-[48vh] overflow-hidden rounded-xl bg-sepia/30 dark:bg-card-bg/80">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-sepia/30 dark:bg-card-bg/80 sm:aspect-[16/10] md:aspect-[16/9]">
           <ContentImage
             src={images[0].src}
             alt={images[0].alt || alt}
@@ -33,13 +33,14 @@ export const ImageCarousel = ({ images, alt, fit = 'cover' }: ImageCarouselProps
             component="ImageCarousel"
             fill
             sizes="(max-width: 768px) 100vw, 900px"
-            className={imageClassName}
+            fitMode={fitMode}
+            surfaceTone="light"
             fallbackLabel="изображение недоступно"
           />
         </div>
         {images[0].captionHtml && (
           <div
-            className="mt-3 text-center text-sm text-gray-600 dark:text-gray-400"
+            className="mt-3 text-center text-sm text-[color:var(--muted)] dark:text-gray-400"
             dangerouslySetInnerHTML={{ __html: images[0].captionHtml }}
           />
         )}
@@ -98,7 +99,7 @@ export const ImageCarousel = ({ images, alt, fit = 'cover' }: ImageCarouselProps
         onPointerUp={handlePointerUp}
         className="relative overflow-hidden rounded-xl bg-sepia/30 dark:bg-card-bg/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
       >
-        <div className="relative h-[34vh] sm:h-[40vh] md:h-[48vh]">
+        <div className="relative aspect-[4/3] sm:aspect-[16/10] md:aspect-[16/9]">
           <ContentImage
             src={activeImage.src}
             alt={activeImage.alt || `${alt} — изображение ${activeIndex + 1}`}
@@ -106,7 +107,8 @@ export const ImageCarousel = ({ images, alt, fit = 'cover' }: ImageCarouselProps
             component="ImageCarousel"
             fill
             sizes="(max-width: 768px) 100vw, 900px"
-            className={imageClassName}
+            fitMode={fitMode}
+            surfaceTone="light"
             fallbackLabel="изображение недоступно"
           />
         </div>
@@ -154,7 +156,7 @@ export const ImageCarousel = ({ images, alt, fit = 'cover' }: ImageCarouselProps
 
       {activeImage.captionHtml && (
         <div
-          className="mt-3 text-center text-sm text-gray-600 dark:text-gray-400"
+          className="mt-3 text-center text-sm text-[color:var(--muted)] dark:text-gray-400"
           dangerouslySetInnerHTML={{ __html: activeImage.captionHtml }}
         />
       )}

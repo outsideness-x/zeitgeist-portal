@@ -10,6 +10,8 @@ interface ArticleCardProps {
 }
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = false, routePath = '/' }) => {
+  const isResearch = article.type === 'research';
+  const isNova = article.type === 'nova';
   const authorName = article.authors.length > 0
     ? article.authors.map((author) => author.name).join(', ')
     : 'Редакция';
@@ -19,76 +21,91 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, featured = fa
     day: 'numeric',
   });
   const readingTime = article.reading_time ? `${article.reading_time} мин чтения` : 'Короткое чтение';
-  const getBadgeColor = (type: string) => {
-    switch (type) {
-      case 'research': return 'bg-indigo-900/75 text-white';
-      case 'nova': return 'bg-black/75 text-green-300';
-      default: return 'bg-accent/85 text-white';
-    }
-  };
-  const titleSizeClass = featured
-    ? 'text-[clamp(1.9rem,7.8vw,2.8rem)] leading-[0.98] tracking-tight text-balance line-clamp-3 md:text-[clamp(2.15rem,4.35vw,3.75rem)] md:leading-[1.02] md:line-clamp-4'
-    : 'text-[clamp(1.55rem,6.8vw,2.15rem)] leading-[1] tracking-tight text-balance line-clamp-3 md:text-[clamp(1.8rem,3vw,2.6rem)] md:leading-[1.02]';
-  const titleLayoutClass = featured
-    ? 'max-w-[94%] pt-[0.08em] md:max-w-[82%]'
-    : 'max-w-[94%] pt-[0.06em]';
-  const containerClass = featured
-    ? 'h-[520px] sm:h-[560px] md:h-[520px] rounded-2xl bg-black'
-    : 'h-[440px] sm:h-[460px] md:h-[420px] rounded-2xl bg-black';
-  const overlayClass = 'bg-gradient-to-t from-black via-black/60 to-black/10 transition-colors duration-500 md:via-black/35 md:to-transparent group-hover:from-black md:group-hover:via-black/50';
-  const contentClass = 'absolute bottom-0 left-0 w-full p-4 text-white transition-transform duration-500 sm:p-6 md:p-8';
-  const excerptClass = featured
-    ? 'mt-3 hidden max-w-3xl font-serif text-sm leading-relaxed text-gray-100 line-clamp-3 md:mt-4 md:block md:text-lg md:opacity-0 md:transition-opacity md:duration-500 md:delay-100 md:group-hover:opacity-100'
-    : 'mt-3 hidden max-w-2xl font-serif text-sm leading-relaxed text-gray-100 line-clamp-3 md:mt-4 md:block md:text-base md:opacity-0 md:transition-opacity md:duration-500 md:delay-100 md:group-hover:opacity-100';
-  const titleFontClass = 'font-serif font-semibold';
-  const authorClass = 'mt-2 text-xs font-sans italic text-gray-300 sm:text-sm md:mt-3';
-  const metaClass = 'mb-2 flex flex-col items-start gap-1 text-[10px] font-sans uppercase tracking-[0.14em] text-gray-300 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:text-[11px] sm:tracking-[0.18em] md:mb-3';
-  const badgeClass = `inline-flex rounded-full px-3 py-1 text-[10px] font-sans uppercase tracking-[0.16em] sm:text-[11px] sm:tracking-[0.18em] ${getBadgeColor(article.type)}`;
+
+  const shellClass = isNova
+    ? 'border border-[#58f29d]/16 bg-[#060807] text-[#effff4] shadow-[0_0_0_1px_rgba(88,242,157,0.04),0_30px_75px_rgba(0,0,0,0.32)]'
+    : isResearch
+      ? 'border border-[color:var(--line-soft)] bg-[color:var(--surface-raised)] text-ink shadow-[var(--shadow-soft)] dark:bg-[#17151f] dark:text-gray-100'
+      : 'border border-[color:var(--line-soft)] bg-[color:var(--surface-raised)] text-ink shadow-[var(--shadow-soft)]';
+
+  const imageOverlayClass = isNova
+    ? 'bg-gradient-to-t from-[#050706]/74 via-[#09130d]/28 to-transparent'
+    : isResearch
+      ? 'bg-gradient-to-t from-[#151325]/48 via-[#151325]/10 to-transparent'
+      : 'bg-gradient-to-t from-[#120e0c]/34 via-[#120e0c]/8 to-transparent';
+
+  const badgeClass = isNova
+    ? 'inline-flex max-w-full items-center justify-center rounded-full border border-[#58f29d]/28 bg-[#07110c] px-3 py-1 text-center font-mono text-[0.68rem] uppercase leading-tight tracking-[0.16em] text-[#a4ffca]'
+    : isResearch
+      ? 'inline-flex max-w-full items-center justify-center rounded-full bg-[#232048] px-3 py-1 text-center font-sans text-[0.68rem] font-semibold uppercase leading-tight tracking-[0.16em] text-[#f1efff]'
+      : 'inline-flex max-w-full items-center justify-center rounded-full bg-accent px-3 py-1 text-center font-sans text-[0.68rem] font-semibold uppercase leading-tight tracking-[0.16em] text-white';
+
+  const metaClass = isNova
+    ? 'break-words font-mono text-[0.7rem] uppercase tracking-[0.14em] text-[#bfffd7]/70'
+    : 'break-words font-sans text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--muted)]';
+
+  const titleClass = featured
+    ? 'font-serif text-[clamp(1.7rem,4.8vw,3rem)] leading-[1.08] tracking-[-0.03em]'
+    : 'font-serif text-[clamp(1.28rem,3.8vw,2.05rem)] leading-[1.08] tracking-[-0.025em]';
+
+  const excerptClass = isNova
+    ? 'mt-4 line-clamp-4 max-w-2xl font-serif text-[0.98rem] leading-relaxed text-[#d8ffe7]/78'
+    : 'mt-4 line-clamp-4 max-w-2xl font-serif text-[0.98rem] leading-relaxed text-[color:var(--muted)] dark:text-gray-400';
+
+  const authorClass = isNova
+    ? 'mt-5 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-[#bfffd7]/72'
+    : 'mt-5 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--muted)]';
 
   return (
     <Link
       href={`/article/${article.id}`}
-      className={`group relative block overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${containerClass}`}
+      className={`group block min-w-0 max-w-full overflow-hidden rounded-[clamp(1.35rem,3vw,1.75rem)] transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${shellClass}`}
     >
-      <ContentImage
-        src={article.feature_image}
-        alt={article.title}
-        route={routePath}
-        component="ArticleCard"
-        articleId={article.id}
-        fill
-        priority={featured}
-        sizes={featured ? '(max-width: 768px) 100vw, 80vw' : '(max-width: 768px) 100vw, 50vw'}
-        className="object-cover grayscale transition duration-[1.5s] ease-out group-hover:scale-110 group-hover:grayscale-0"
-        fallbackLabel="обложка недоступна"
-      />
-
-      <div className={`absolute inset-0 ${overlayClass}`} />
-      <div className="absolute left-0 top-0 p-4 sm:p-6">
-        <span className={badgeClass}>
-          {article.type === 'nova' ? 'Nova Express' : article.type === 'research' ? 'исследование' : 'журнал'}
-        </span>
-      </div>
-
-      <div className={contentClass}>
-        <div className={metaClass}>
-          <span>{formattedDate}</span>
-          <span className="hidden sm:inline">&bull;</span>
-          <span>{readingTime}</span>
+      <article className={featured ? 'flex flex-col lg:grid lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)]' : 'flex flex-col'}>
+        <div className={`relative min-w-0 overflow-hidden ${featured ? 'aspect-[4/3] sm:aspect-[16/10] lg:aspect-auto lg:min-h-[24rem]' : 'aspect-[16/10]'}`}>
+          <ContentImage
+            src={article.feature_image}
+            alt={article.title}
+            route={routePath}
+            component="ArticleCard"
+            articleId={article.id}
+            fill
+            priority={featured}
+            sizes={featured ? '(max-width: 1024px) 100vw, 52vw' : '(max-width: 768px) 100vw, 50vw'}
+            fitMode="adaptive"
+            surfaceTone={isNova ? 'dark' : 'light'}
+            className="transition duration-[1.1s] ease-out group-hover:scale-[1.02]"
+            fallbackClassName={`flex h-full items-center justify-center px-6 text-center font-sans text-sm uppercase tracking-[0.18em] ${
+              isNova ? 'bg-[#07110c] text-[#95ffbf]' : 'bg-sepia text-[color:var(--muted)] dark:bg-card-bg'
+            }`}
+            fallbackLabel="обложка недоступна"
+          />
+          <div className={`absolute inset-0 ${imageOverlayClass}`} />
         </div>
 
-        <h3 className={`${titleSizeClass} ${titleLayoutClass} ${titleFontClass} text-white`}>
-          {article.title}
-        </h3>
+        <div className={`min-w-0 p-4 sm:p-5 ${featured ? 'sm:p-6 lg:p-8' : 'md:p-6'}`}>
+          <div className="flex flex-wrap items-center gap-2 gap-y-3">
+            <span className={badgeClass}>
+              {article.type === 'nova' ? 'Nova Express' : article.type === 'research' ? 'исследование' : 'журнал'}
+            </span>
+            <span className={metaClass}>{formattedDate}</span>
+            <span className={`hidden sm:inline ${metaClass}`} aria-hidden="true">&bull;</span>
+            <span className={metaClass}>{readingTime}</span>
+          </div>
 
-        <p className={authorClass}>
-          Автор: <span className="not-italic font-semibold text-white">{authorName}</span>
-        </p>
+          <h3 className={`${titleClass} mt-4 max-w-[22ch] break-words text-balance ${isNova ? 'text-[#f3fff7]' : 'text-ink dark:text-gray-100'}`}>
+            {article.title}
+          </h3>
 
-        <p className={excerptClass}>
-          {article.excerpt}
-        </p>
-      </div>
+          <p className={excerptClass}>
+            {article.excerpt}
+          </p>
+
+          <p className={authorClass}>
+            Автор: <span className={isNova ? 'text-[#effff4]' : 'text-ink dark:text-gray-100'}>{authorName}</span>
+          </p>
+        </div>
+      </article>
     </Link>
   );
 };

@@ -24,16 +24,19 @@ export default async function ResearchPage({ searchParams }: ResearchPageProps) 
   });
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-16">
-      <div className="text-center mb-16">
-        <h1 className="font-display text-5xl mb-4">Каталог исследований</h1>
-        <p className="font-serif text-xl text-gray-500">Рецензируемые статьи, архивные находки и академические материалы.</p>
-      </div>
+    <div className="page-shell-narrow py-16 sm:py-20">
+      <section className="site-panel overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_top_right,rgba(50,76,171,0.08),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(141,67,57,0.06),transparent_26%)] px-6 py-10 sm:px-10 sm:py-14">
+        <p className="section-kicker">academic index</p>
+        <h1 className="section-title">Каталог исследований</h1>
+        <p className="section-lead max-w-3xl">
+          Рецензируемые статьи, архивные находки и академические материалы. Мы усилили структуру и контраст, чтобы научные тексты читались увереннее и без визуального шума.
+        </p>
+      </section>
 
-      <div className="space-y-12">
+      <div className="mt-10 space-y-10">
         {papers.items.length > 0 ? (
           papers.items.map((paper, idx) => (
-            <div key={paper.id} className={idx !== papers.items.length - 1 ? "border-b border-gray-200 pb-12" : ""}>
+            <div key={paper.id} className={idx !== papers.items.length - 1 ? "border-b border-[color:var(--line-soft)] pb-10" : ""}>
               <ArticleCard article={paper} featured={true} routePath="/research" />
             </div>
           ))
@@ -50,21 +53,21 @@ export default async function ResearchPage({ searchParams }: ResearchPageProps) 
         )}
       </div>
 
-      <div className="mt-12 flex items-center justify-between">
+      <div className="pagination-shell">
         <Link
           href={page > 1 ? `/research?page=${page - 1}` : '#'}
           aria-disabled={page <= 1}
-          className={`px-4 py-2 border border-sepia text-sm uppercase tracking-wider ${page <= 1 ? 'pointer-events-none opacity-40' : 'hover:border-accent'}`}
+          className="pagination-link"
         >
           Назад
         </Link>
-        <span className="text-sm text-gray-500">
+        <span className="font-sans text-[0.74rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">
           Страница {papers.page} из {papers.totalPages}
         </span>
         <Link
           href={page < papers.totalPages ? `/research?page=${page + 1}` : '#'}
           aria-disabled={page >= papers.totalPages}
-          className={`px-4 py-2 border border-sepia text-sm uppercase tracking-wider ${page >= papers.totalPages ? 'pointer-events-none opacity-40' : 'hover:border-accent'}`}
+          className="pagination-link"
         >
           Вперед
         </Link>
