@@ -99,6 +99,26 @@ describe('frontend backend client', () => {
       path: '/api/auth/login',
       method: 'POST',
       body: { email: 'reader@example.com', password: 'wrong' },
-    })).rejects.toThrow('invalid credentials');
+    })).rejects.toThrow('Неверная почта или пароль.');
+  });
+
+  it('maps register credential processing errors to a user-facing auth hint', async () => {
+    process.env[backendUrlEnvKey] = 'https://api.example.com';
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ message: 'unable to process credentials' }), {
+        status: 400,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    ));
+
+    await expect(backendRequest<{ ok: boolean }>({
+      path: '/api/auth/register',
+      method: 'POST',
+      body: { name: 'alex', email: 'reader@example.com', password: 'password123' },
+    })).rejects.toThrow('Не удалось создать аккаунт. Возможно, для этой почты уже есть аккаунт. Попробуйте войти.');
   });
 });

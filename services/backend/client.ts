@@ -4,6 +4,20 @@ const requestTimeoutMs = 12_000;
 const retryDelayMs = 300;
 const devLogCache = new Set<string>();
 
+const mapUserFacingBackendErrorMessage = (path: string, message: string): string => {
+  const normalizedMessage = message.trim().toLowerCase();
+
+  if (path === '/api/auth/login' && normalizedMessage === 'invalid credentials') {
+    return 'Неверная почта или пароль.';
+  }
+
+  if (path === '/api/auth/register' && normalizedMessage === 'unable to process credentials') {
+    return 'Не удалось создать аккаунт. Возможно, для этой почты уже есть аккаунт. Попробуйте войти.';
+  }
+
+  return message;
+};
+
 export const getBackendBaseUrl = (): string => {
   return process.env.NEXT_PUBLIC_BACKEND_URL?.trim() ?? '';
 };
@@ -115,7 +129,7 @@ export const backendRequest = async <T>(args: {
       });
 
       if (!response.ok) {
-        throw new Error(await parseBackendErrorMessage(response));
+        throw new Error(mapUserFacingBackendErrorMessage(args.path, await parseBackendErrorMessage(response)));
       }
 
       if (response.status === 204 || response.headers.get('content-length') === '0') {
