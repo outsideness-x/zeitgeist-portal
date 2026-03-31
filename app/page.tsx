@@ -189,7 +189,7 @@ export default async function Home() {
                     Nova Express
                   </h2>
                   <p className="mt-6 max-w-xl font-serif text-[1.1rem] leading-relaxed text-[#d5ffe5]/78">
-                    Драматичная, но собранная линия о кибернетике, кат-апе и системах контроля. Мы сохранили характер Nova и дали ему больше воздуха, ритма и читаемости.
+                    Заметки и исследования на тему контркультуры, андерграунда и границ Контроля.
                   </p>
                   <div className="mt-6 flex flex-wrap gap-2">
                     {['cat-up', 'cybernetics', 'control', 'electronic revolution'].map((tag) => (
@@ -212,7 +212,7 @@ export default async function Home() {
                         <p className="font-mono text-[0.68rem] uppercase tracking-[0.24em] text-[#a6ffca]/62">
                           {new Date(article.published_at).toLocaleDateString()} · {article.reading_time ? `${article.reading_time} мин` : 'короткий сигнал'}
                         </p>
-                        <h3 className="mt-3 font-display text-[1.85rem] leading-[0.98] tracking-[-0.04em] text-[#f3fff7]">
+                        <h3 className="mt-3 font-display text-[1.85rem] leading-[1.02] tracking-[-0.04em] text-[#f3fff7]">
                           {article.title}
                         </h3>
                         <p className="mt-3 line-clamp-3 font-serif text-[1rem] leading-relaxed text-[#d6ffe6]/72">

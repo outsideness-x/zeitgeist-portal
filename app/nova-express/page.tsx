@@ -52,27 +52,6 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
               </div>
             </div>
 
-            <div className="min-w-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-              <div className="nova-panel rounded-[clamp(1.25rem,2vw,1.5rem)] p-4 sm:p-5">
-                <p className="nova-label">system status</p>
-                <p className="mt-4 font-mono text-sm uppercase tracking-[0.22em] text-[#98ffbf]">
-                  {'/// '}<span className="animate-pulse">signal</span>: unstable but readable {'///'}
-                </p>
-                <p className="mt-4 font-serif text-[0.98rem] leading-relaxed text-[color:var(--nova-muted)]">
-                  Визуальная драма остается, но теперь подчинена чтению: тише сетка, чище контраст, спокойнее интервалы.
-                </p>
-              </div>
-
-              <div className="nova-panel rounded-[clamp(1.25rem,2vw,1.5rem)] p-4 sm:p-5">
-                <p className="nova-label">transmission logic</p>
-                <p className="mt-4 font-display text-[1.7rem] leading-[1] tracking-[-0.03em] text-white sm:text-[2rem]">
-                  Кат-ап, контроль, сбой
-                </p>
-                <p className="mt-4 font-serif text-[0.98rem] leading-relaxed text-[color:var(--nova-muted)]">
-                  Подборка строится вокруг тем, которые требуют не только атмосферы, но и хорошей навигации по сложному содержанию.
-                </p>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -84,9 +63,6 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
                 Последние передачи
               </h2>
             </div>
-            <p className="max-w-md font-serif text-sm leading-relaxed text-[color:var(--nova-muted)]">
-              Тексты поданы в более собранной ленте, чтобы взгляд быстро находил главное и не терялся в эффекте.
-            </p>
           </div>
 
           <div className="space-y-8">

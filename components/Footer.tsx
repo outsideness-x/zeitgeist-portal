@@ -37,6 +37,9 @@ export const Footer: React.FC = () => {
             <Link href="/terms" className="hover:text-[#efe4da]">Условия использования</Link>
           </div>
         </div>
+        <p className="mt-4 text-left font-sans text-[0.76rem] uppercase tracking-[0.14em] text-[#b29b8b]">
+          DESIGNED BY CHEMICAL PINK
+        </p>
       </div>
     </footer>
   );

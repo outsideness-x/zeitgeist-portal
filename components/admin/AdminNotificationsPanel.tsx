@@ -76,7 +76,7 @@ export const AdminNotificationsPanel = ({ csrfToken }: AdminNotificationsPanelPr
 
     try {
       const response = await backendRequest<AdminNotificationsResponse>({
-        path: '/api/admin/notifications?page=1&pageSize=30',
+        path: '/api/admin/notifications?page=1&pageSize=30&unread=true',
       });
 
       setItems(response.items);
@@ -108,11 +108,8 @@ export const AdminNotificationsPanel = ({ csrfToken }: AdminNotificationsPanelPr
         csrfToken,
       });
 
-      setItems((previousItems) => previousItems.map((item) => (
-        item.id === notificationId
-          ? { ...item, isRead: true, readAt: new Date().toISOString() }
-          : item
-      )));
+      setItems((previousItems) => previousItems.filter((item) => item.id !== notificationId));
+      setTotal((count) => Math.max(0, count - 1));
       setUnreadCount((count) => Math.max(0, count - 1));
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Не удалось обновить уведомление.');
@@ -136,11 +133,8 @@ export const AdminNotificationsPanel = ({ csrfToken }: AdminNotificationsPanelPr
         csrfToken,
       });
 
-      setItems((previousItems) => previousItems.map((item) => ({
-        ...item,
-        isRead: true,
-        readAt: item.readAt ?? new Date().toISOString(),
-      })));
+      setItems([]);
+      setTotal(0);
       setUnreadCount(0);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Не удалось отметить уведомления.');

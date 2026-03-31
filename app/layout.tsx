@@ -34,8 +34,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Zeitgeist | Портал востоковедческих исследований",
-  description: "Цифровой портал для исследователей-востоковедов.",
+  title: "Zeitgeist | Портал свободных исследований",
+  description: "Портал свободных исследований.",
   icons: {
     icon: "/other/tab-icon.jpg",
     shortcut: "/other/tab-icon.jpg",

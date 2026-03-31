@@ -315,7 +315,7 @@ export const registerDiscussionRoutes = async (app: FastifyInstance) => {
       targetId: query.data.targetId,
     });
 
-    if (!targetCheck.ok) {
+    if (targetCheck.ok === false) {
       reply.code(targetCheck.statusCode).send({ error: 'request_error', message: targetCheck.message });
       return;
     }
@@ -469,7 +469,7 @@ export const registerDiscussionRoutes = async (app: FastifyInstance) => {
       targetId: body.data.targetId,
     });
 
-    if (!targetCheck.ok) {
+    if (targetCheck.ok === false) {
       reply.code(targetCheck.statusCode).send({ error: 'request_error', message: targetCheck.message });
       return;
     }
