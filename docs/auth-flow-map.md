@@ -15,7 +15,7 @@
   - 2fa path: `requiresTwoFactor=true` and short-lived preauth challenge metadata.
 - state update:
   - standard path: `authStateReducer` receives `set-session`.
-  - 2fa path: modal switches to code verification step.
+  - 2fa path: modal switches to code verification step and finalizes via `POST /api/auth/2fa/verify`.
 - persistence: cookie session remains source of truth on backend.
 
 ## google oauth flow
@@ -27,6 +27,7 @@
   - existing password user with same email: no silent linking; preauth link challenge + email code.
   - new email: create user + account(provider=`GOOGLE`).
 - finalization: callback sets regular `zg_session`/`zg_csrf` or redirects with `auth=2fa` for step-up.
+- frontend callback handling: `components/Header.tsx` consumes `auth`/`auth_error` query params, opens modal in the required flow, then removes service params from the URL.
 
 ## email 2fa flow
 - preauth storage: `PreAuthSession` table + `zg_preauth` httpOnly cookie (short ttl).
@@ -37,6 +38,10 @@
   - `POST /api/auth/2fa/verify`
 - login/link path: code verification consumes preauth and only then issues normal session cookies.
 - settings path: enable/disable 2fa requires authenticated csrf-protected send+verify code steps.
+
+## password input ux
+- `components/AuthModal.tsx` password field includes keyboard-accessible eye toggle (`show/hide`).
+- input keeps stable layout (`pr-12` + absolutely positioned icon button) and preserves native validation/autofill behavior.
 
 ## logout flow
 - ui entry: `components/Header.tsx` logout action.

@@ -2,22 +2,26 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { AuthModal } from './AuthModal';
+import { usePathname, useRouter } from 'next/navigation';
+import { mapOAuthErrorCodeToMessage, buildAuthCallbackPath } from '@/services/auth/oauth';
+import { AuthModal, type AuthModalIntent } from './AuthModal';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from './AuthProvider';
 import { UserAvatar } from './UserAvatar';
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const [isAuthOpen, setAuthOpen] = useState(false);
+  const [authIntent, setAuthIntent] = useState<AuthModalIntent>(null);
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const { user, logout, loading } = useAuth();
+  const { user, logout } = useAuth();
 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const firstNavLinkRef = useRef<HTMLAnchorElement>(null);
   const wasMenuOpenRef = useRef(false);
+  const authIntentCounterRef = useRef(0);
 
   const baseNavItems = [
     { href: '/research', label: 'Исследования' },
@@ -50,11 +54,22 @@ export const Header: React.FC = () => {
   };
 
   const openAuthModal = useCallback(() => {
+    setAuthIntent(null);
     setAuthOpen(true);
   }, []);
 
   const closeAuthModal = useCallback(() => {
+    setAuthIntent(null);
     setAuthOpen(false);
+  }, []);
+
+  const handleIntentHandled = useCallback((intentId: number) => {
+    setAuthIntent((current) => {
+      if (!current || current.id !== intentId) {
+        return current;
+      }
+      return null;
+    });
   }, []);
 
   const handleLogout = async () => {
@@ -111,12 +126,57 @@ export const Header: React.FC = () => {
     };
   }, [openAuthModal]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const search = window.location.search;
+    const params = new URLSearchParams(search);
+
+    const authFlag = params.get('auth');
+    const authErrorCode = params.get('auth_error');
+    const authDebugCode = params.get('auth_debug_code');
+
+    if (!authFlag && !authErrorCode) {
+      return;
+    }
+
+    const cleanPath = buildAuthCallbackPath(pathname, search);
+    router.replace(cleanPath, { scroll: false });
+
+    if (user) {
+      return;
+    }
+
+    if (authFlag === '2fa') {
+      authIntentCounterRef.current += 1;
+      setAuthIntent({
+        id: authIntentCounterRef.current,
+        type: 'two-factor',
+        ...(authDebugCode ? { debugCode: authDebugCode } : {}),
+      });
+      setAuthOpen(true);
+      return;
+    }
+
+    if (authErrorCode) {
+      authIntentCounterRef.current += 1;
+      setAuthIntent({
+        id: authIntentCounterRef.current,
+        type: 'oauth-error',
+        message: mapOAuthErrorCodeToMessage(authErrorCode) ?? undefined,
+      });
+      setAuthOpen(true);
+    }
+  }, [pathname, router, user]);
+
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-[color:var(--line-soft)] bg-paper/85 backdrop-blur-xl transition-all duration-300 supports-[backdrop-filter]:bg-paper/75 dark:bg-[#120f0e]/82">
         <div className="page-shell">
           <div className="flex min-h-[4.75rem] items-center justify-between gap-2 py-3 sm:min-h-[5.25rem] sm:gap-3">
-            <div className="flex shrink-0 items-center xl:hidden">
+            <div className="flex shrink-0 items-center">
               <button
                 ref={triggerRef}
                 type="button"
@@ -148,45 +208,9 @@ export const Header: React.FC = () => {
               </Link>
             </div>
 
-            {/* desktop navigation */}
-            <nav className="hidden min-w-0 flex-1 flex-wrap items-center justify-center gap-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.14em] xl:flex" aria-label="Основная навигация">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={getNavItemClassName(item.href)}
-                  aria-current={isItemActive(item.href) ? 'page' : undefined}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
             {/* actions */}
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <ThemeToggle />
-
-              <Link
-                href="/upload"
-                className="hidden items-center rounded-full border border-accent/30 bg-[color:var(--accent-soft)] px-3.5 py-2 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-accent transition-all duration-300 hover:border-accent hover:bg-accent hover:text-white xl:inline-flex"
-              >
-                Загрузить
-              </Link>
-
-              {user ? (
-                <div className="hidden items-center gap-2.5 font-sans text-sm xl:flex">
-                  <UserAvatar name={user.name} avatarUrl={user.avatarDataUrl ?? null} />
-                  <button onClick={() => void handleLogout()} className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--muted)] transition-colors hover:text-red-500">Выйти</button>
-                </div>
-              ) : (
-                <button
-                  onClick={openAuthModal}
-                  className="hidden font-sans text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[color:var(--muted-strong)] transition-colors hover:text-accent dark:text-[color:var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent xl:inline-flex"
-                >
-                  {loading ? '...' : 'Войти'}
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -200,11 +224,11 @@ export const Header: React.FC = () => {
           <>
             <button
               type="button"
-              className="fixed inset-0 z-40 bg-black/40 xl:hidden"
+              className="fixed inset-0 z-40 bg-black/40"
               aria-label="Закрыть мобильную навигацию"
               onClick={closeMenu}
             />
-            <div id="mobile-menu" className="page-shell relative z-50 pb-5 xl:hidden" aria-label="Мобильная навигация">
+            <div id="mobile-menu" className="page-shell relative z-50 pb-5" aria-label="Мобильная навигация">
               <div className="site-panel mt-3 overflow-hidden rounded-[1.75rem] px-4 py-5 sm:px-5">
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div className="min-w-0">
@@ -291,7 +315,12 @@ export const Header: React.FC = () => {
         )}
       </header>
 
-      <AuthModal isOpen={isAuthOpen} onClose={closeAuthModal} />
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={closeAuthModal}
+        intent={authIntent}
+        onIntentHandled={handleIntentHandled}
+      />
     </>
   );
 };

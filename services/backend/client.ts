@@ -15,6 +15,38 @@ const mapUserFacingBackendErrorMessage = (path: string, message: string): string
     return 'Не удалось создать аккаунт. Возможно, для этой почты уже есть аккаунт. Попробуйте войти.';
   }
 
+  if (path === '/api/auth/google/start' && normalizedMessage === 'google sign-in is not configured') {
+    return 'Вход через Google сейчас недоступен. Обратитесь к администратору.';
+  }
+
+  if ((path === '/api/auth/2fa/send' || path === '/api/auth/2fa/resend') && normalizedMessage === 'please wait before requesting another code') {
+    return 'Подождите немного перед повторной отправкой кода.';
+  }
+
+  if ((path === '/api/auth/2fa/send' || path === '/api/auth/2fa/resend') && normalizedMessage === 'resend limit reached for this code') {
+    return 'Лимит повторной отправки кода исчерпан. Запустите вход заново.';
+  }
+
+  if ((path === '/api/auth/2fa/send' || path === '/api/auth/2fa/resend') && normalizedMessage === 'unable to deliver verification code') {
+    return 'Не удалось отправить код подтверждения. Попробуйте позже.';
+  }
+
+  if (path === '/api/auth/2fa/verify' && normalizedMessage === 'invalid verification code') {
+    return 'Неверный код подтверждения.';
+  }
+
+  if (path === '/api/auth/2fa/verify' && normalizedMessage === 'verification code expired') {
+    return 'Срок действия кода истек. Запросите новый код.';
+  }
+
+  if (path === '/api/auth/2fa/verify' && normalizedMessage === 'too many verification attempts') {
+    return 'Слишком много неудачных попыток. Попробуйте позже.';
+  }
+
+  if (path === '/api/auth/2fa/verify' && normalizedMessage === 'two-factor challenge is not active') {
+    return 'Сессия подтверждения истекла. Войдите снова.';
+  }
+
   return message;
 };
 

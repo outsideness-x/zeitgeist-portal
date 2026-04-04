@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import supertest from 'supertest';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildServer } from '../src/server.js';
+import { hashToken } from '../src/lib/auth.js';
 
 vi.mock('../src/lib/storage.js', () => {
   return {
@@ -39,6 +40,11 @@ process.env.ANALYTICS_COOKIE_MAX_AGE_DAYS = process.env.ANALYTICS_COOKIE_MAX_AGE
 process.env.MAX_APPLAUSE_PER_USER_PER_ARTICLE = process.env.MAX_APPLAUSE_PER_USER_PER_ARTICLE ?? '50';
 process.env.CONTENT_PROVIDER = process.env.CONTENT_PROVIDER ?? 'local';
 process.env.PUBLISH_PROVIDER = process.env.PUBLISH_PROVIDER ?? 'local';
+process.env.AUTH_APP_BASE_URL = process.env.AUTH_APP_BASE_URL ?? 'http://localhost:3000';
+process.env.GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? 'test-google-client-id';
+process.env.GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? 'test-google-client-secret';
+process.env.GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? 'http://localhost:4001/api/auth/google/callback';
+process.env.EMAIL_PROVIDER = process.env.EMAIL_PROVIDER ?? 'noop';
 
 const isSafeTestDatabaseUrl = (value: string | undefined): boolean => {
   if (!value) {
@@ -62,6 +68,11 @@ const canRun = (
 describe.skipIf(!canRun)('backend integration', () => {
   const app = buildServer();
   const request = supertest(app.server);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   beforeAll(async () => {
     await app.ready();
@@ -99,6 +110,52 @@ describe.skipIf(!canRun)('backend integration', () => {
       csrfToken: registerResponse.body.csrfToken as string,
       cookies: registerResponse.headers['set-cookie'] as string[],
     };
+  };
+
+  const startGoogleOAuth = async (callbackPath = '/account') => {
+    const startResponse = await request
+      .post('/api/auth/google/start')
+      .set('Origin', 'http://localhost:3000')
+      .send({ callbackPath });
+
+    expect(startResponse.status).toBe(200);
+
+    const authUrl = new URL(startResponse.body.url as string);
+    const state = authUrl.searchParams.get('state');
+    expect(state).toBeTruthy();
+
+    return {
+      state: state as string,
+      url: authUrl,
+    };
+  };
+
+  const mockGoogleExchange = (args: {
+    providerAccountId: string;
+    email: string;
+    name?: string;
+    emailVerified?: boolean;
+  }) => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'test-access-token' }), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        sub: args.providerAccountId,
+        email: args.email,
+        email_verified: args.emailVerified ?? true,
+        ...(args.name ? { name: args.name } : {}),
+      }), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }));
   };
 
   const ensureArticle = async (slugPrefix: string) => {
@@ -151,6 +208,152 @@ describe.skipIf(!canRun)('backend integration', () => {
       .send({});
 
     expect(logoutResponse.status).toBe(200);
+  });
+
+  it('google oauth start stores state with safe callback path', async () => {
+    const startResponse = await request
+      .post('/api/auth/google/start')
+      .set('Origin', 'http://localhost:3000')
+      .send({ callbackPath: 'https://evil.example/steal' });
+
+    expect(startResponse.status).toBe(200);
+
+    const authUrl = new URL(startResponse.body.url as string);
+    const state = authUrl.searchParams.get('state');
+    expect(state).toBeTruthy();
+
+    const savedState = await app.prisma.oAuthState.findUnique({
+      where: {
+        stateHash: hashToken(state as string),
+      },
+      select: {
+        redirectPath: true,
+      },
+    });
+
+    expect(savedState?.redirectPath).toBe('/');
+  });
+
+  it('google oauth callback creates user on first login and reuses account on repeat login', async () => {
+    const email = `google-${randomUUID()}@example.com`;
+    const providerAccountId = `google-sub-${randomUUID()}`;
+
+    const firstStart = await startGoogleOAuth('/account?tab=profile');
+    mockGoogleExchange({
+      providerAccountId,
+      email,
+      name: 'Google Reader',
+    });
+
+    const firstCallback = await request
+      .get(`/api/auth/google/callback?code=first-code&state=${encodeURIComponent(firstStart.state)}`);
+
+    expect(firstCallback.status).toBe(302);
+    expect(firstCallback.headers.location).toBe('http://localhost:3000/account?tab=profile');
+
+    const firstCookies = firstCallback.headers['set-cookie'] as string[] | undefined;
+    expect(firstCookies?.some((cookie) => cookie.startsWith('zg_session='))).toBe(true);
+    expect(firstCookies?.some((cookie) => cookie.startsWith('zg_csrf='))).toBe(true);
+
+    const firstMe = await request
+      .get('/api/auth/me')
+      .set('Cookie', firstCookies ?? []);
+
+    expect(firstMe.status).toBe(200);
+    expect(firstMe.body.user.email).toBe(email);
+    const firstUserId = firstMe.body.user.id as string;
+
+    const linkedAccount = await app.prisma.account.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: 'GOOGLE',
+          providerAccountId,
+        },
+      },
+      select: {
+        userId: true,
+        email: true,
+      },
+    });
+
+    expect(linkedAccount?.userId).toBe(firstUserId);
+    expect(linkedAccount?.email).toBe(email);
+
+    const secondStart = await startGoogleOAuth('/account?tab=security');
+    mockGoogleExchange({
+      providerAccountId,
+      email,
+      name: 'Google Reader',
+    });
+
+    const secondCallback = await request
+      .get(`/api/auth/google/callback?code=second-code&state=${encodeURIComponent(secondStart.state)}`);
+
+    expect(secondCallback.status).toBe(302);
+    expect(secondCallback.headers.location).toBe('http://localhost:3000/account?tab=security');
+
+    const secondCookies = secondCallback.headers['set-cookie'] as string[] | undefined;
+    const secondMe = await request
+      .get('/api/auth/me')
+      .set('Cookie', secondCookies ?? []);
+
+    expect(secondMe.status).toBe(200);
+    expect(secondMe.body.user.id).toBe(firstUserId);
+
+    const accountRows = await app.prisma.account.count({
+      where: {
+        provider: 'GOOGLE',
+        providerAccountId,
+      },
+    });
+
+    expect(accountRows).toBe(1);
+  });
+
+  it('google oauth callback for existing email requires secure link flow', async () => {
+    const email = `google-link-${randomUUID()}@example.com`;
+    const existing = await registerUser(email, 'existing reader');
+    expect(existing.user.email).toBe(email);
+
+    const providerAccountId = `google-link-${randomUUID()}`;
+    const start = await startGoogleOAuth('/account');
+
+    mockGoogleExchange({
+      providerAccountId,
+      email,
+      name: 'Existing Reader',
+    });
+
+    const callback = await request
+      .get(`/api/auth/google/callback?code=link-code&state=${encodeURIComponent(start.state)}`);
+
+    expect(callback.status).toBe(302);
+    expect(callback.headers.location).toContain('http://localhost:3000/account?auth=2fa');
+
+    const cookies = callback.headers['set-cookie'] as string[] | undefined;
+    expect(cookies?.some((cookie) => cookie.startsWith('zg_preauth='))).toBe(true);
+
+    const linkedAccount = await app.prisma.account.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: 'GOOGLE',
+          providerAccountId,
+        },
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    expect(linkedAccount).toBeNull();
+  });
+
+  it('google oauth callback with invalid state returns oauth_state_invalid redirect', async () => {
+    const callback = await request
+      .get('/api/auth/google/callback?code=any-code&state=invalid-state-token');
+
+    expect(callback.status).toBe(302);
+    expect(callback.headers.location).toBe('http://localhost:3000/?auth_error=oauth_state_invalid');
   });
 
   it('bookmark toggle and list flow works', async () => {

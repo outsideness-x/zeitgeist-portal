@@ -121,4 +121,44 @@ describe('frontend backend client', () => {
       body: { name: 'alex', email: 'reader@example.com', password: 'password123' },
     })).rejects.toThrow('Не удалось создать аккаунт. Возможно, для этой почты уже есть аккаунт. Попробуйте войти.');
   });
+
+  it('maps 2fa verification errors to user-friendly localized message', async () => {
+    process.env[backendUrlEnvKey] = 'https://api.example.com';
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ message: 'invalid verification code' }), {
+        status: 400,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    ));
+
+    await expect(backendRequest<{ ok: boolean }>({
+      path: '/api/auth/2fa/verify',
+      method: 'POST',
+      body: { flow: 'login', code: '000000' },
+    })).rejects.toThrow('Неверный код подтверждения.');
+  });
+
+  it('maps google start misconfiguration errors to user-facing text', async () => {
+    process.env[backendUrlEnvKey] = 'https://api.example.com';
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ message: 'google sign-in is not configured' }), {
+        status: 503,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    ));
+
+    await expect(backendRequest<{ url: string }>({
+      path: '/api/auth/google/start',
+      method: 'POST',
+      body: { callbackPath: '/account' },
+    })).rejects.toThrow('Вход через Google сейчас недоступен. Обратитесь к администратору.');
+  });
 });

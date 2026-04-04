@@ -43,7 +43,9 @@
 
 ## verification notes
 - automated unit coverage for auth reducer and backend client behavior added in `backend/tests/frontend-auth-client.unit.test.ts`.
+- oauth helper coverage added in `backend/tests/auth-oauth-frontend.unit.test.ts`.
 - backend integration auth and like idempotency checks already exist in `backend/tests/integration.test.ts`.
+- google oauth start/callback/linking regression checks added in `backend/tests/integration.test.ts`.
 - frontend verification command results:
   - `npm run lint` passed (dockerized node:20-alpine).
   - `npm run build` passed (dockerized node:20-alpine).

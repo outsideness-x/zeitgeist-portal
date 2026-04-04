@@ -186,6 +186,15 @@ const buildAppRedirectUrl = (path: string, query?: Record<string, string>) => {
   return redirectUrl.toString();
 };
 
+const buildTwoFactorRedirectQuery = (challenge: {
+  debugCode?: string;
+}): Record<string, string> => {
+  return {
+    auth: '2fa',
+    ...(challenge.debugCode ? { auth_debug_code: challenge.debugCode } : {}),
+  };
+};
+
 const maskEmail = (email: string): string => {
   const [localPart, domain] = email.split('@');
   if (!localPart || !domain) {
@@ -874,32 +883,233 @@ const ensureGoogleLinkIsSafe = async (args: {
     };
   }
 
-  if (!existingByProviderAccount) {
-    await args.app.prisma.account.create({
-      data: {
-        userId: args.userId,
-        provider: 'GOOGLE',
-        providerAccountId: args.providerAccountId,
-        email: normalizeEmail(args.email),
-      },
-    });
-  } else {
-    await args.app.prisma.account.update({
+  try {
+    if (!existingByProviderAccount) {
+      await args.app.prisma.account.create({
+        data: {
+          userId: args.userId,
+          provider: 'GOOGLE',
+          providerAccountId: args.providerAccountId,
+          email: normalizeEmail(args.email),
+        },
+      });
+    } else {
+      await args.app.prisma.account.update({
+        where: {
+          provider_providerAccountId: {
+            provider: 'GOOGLE',
+            providerAccountId: args.providerAccountId,
+          },
+        },
+        data: {
+          email: normalizeEmail(args.email),
+        },
+      });
+    }
+  } catch (error) {
+    if (!isPrismaUniqueConstraintError(error)) {
+      throw error;
+    }
+
+    const conflictByProvider = await args.app.prisma.account.findUnique({
       where: {
         provider_providerAccountId: {
           provider: 'GOOGLE',
           providerAccountId: args.providerAccountId,
         },
       },
-      data: {
-        email: normalizeEmail(args.email),
+      select: {
+        userId: true,
       },
     });
+
+    if (conflictByProvider && conflictByProvider.userId !== args.userId) {
+      return {
+        ok: false,
+        statusCode: 409,
+        message: 'google account is already linked to another user',
+      };
+    }
   }
 
   return {
     ok: true,
   };
+};
+
+type GoogleAccountResolution =
+  | {
+    status: 'linked';
+    user: AuthUserPayload;
+    normalizedEmail: string;
+  }
+  | {
+    status: 'needs-link';
+    user: AuthUserPayload;
+    normalizedEmail: string;
+  }
+  | {
+    status: 'created';
+    user: AuthUserPayload;
+    normalizedEmail: string;
+  };
+
+const isPrismaUniqueConstraintError = (error: unknown): boolean => {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  const candidate = error as { code?: unknown };
+  return candidate.code === 'P2002';
+};
+
+const syncGoogleAccountEmail = async (args: {
+  app: FastifyInstance;
+  providerAccountId: string;
+  normalizedEmail: string;
+  currentEmail: string;
+}) => {
+  if (args.currentEmail === args.normalizedEmail) {
+    return;
+  }
+
+  await args.app.prisma.account.update({
+    where: {
+      provider_providerAccountId: {
+        provider: 'GOOGLE',
+        providerAccountId: args.providerAccountId,
+      },
+    },
+    data: {
+      email: args.normalizedEmail,
+    },
+  });
+};
+
+const resolveGoogleAccount = async (args: {
+  app: FastifyInstance;
+  profile: Awaited<ReturnType<typeof exchangeGoogleCodeForProfile>>;
+}): Promise<GoogleAccountResolution> => {
+  const normalizedEmail = normalizeEmail(args.profile.email);
+
+  const findLinkedAccount = async () => {
+    return args.app.prisma.account.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: 'GOOGLE',
+          providerAccountId: args.profile.providerAccountId,
+        },
+      },
+      select: {
+        email: true,
+        user: {
+          select: authUserSelect,
+        },
+      },
+    });
+  };
+
+  const linkedAccount = await findLinkedAccount();
+  if (linkedAccount) {
+    await syncGoogleAccountEmail({
+      app: args.app,
+      providerAccountId: args.profile.providerAccountId,
+      normalizedEmail,
+      currentEmail: linkedAccount.email,
+    });
+
+    return {
+      status: 'linked',
+      user: linkedAccount.user,
+      normalizedEmail,
+    };
+  }
+
+  const existingUser = await args.app.prisma.user.findUnique({
+    where: {
+      email: normalizedEmail,
+    },
+    select: authUserSelect,
+  });
+
+  if (existingUser) {
+    return {
+      status: 'needs-link',
+      user: existingUser,
+      normalizedEmail,
+    };
+  }
+
+  const fallbackName = args.profile.name ?? normalizedEmail.split('@')[0] ?? 'reader';
+  const trimmedName = fallbackName.trim();
+  const safeName = (trimmedName.length >= 2 ? trimmedName : 'reader').slice(0, 120);
+  const randomPasswordHash = await hashPassword(createOpaqueToken());
+
+  try {
+    const createdAccount = await args.app.prisma.account.create({
+      data: {
+        provider: 'GOOGLE',
+        providerAccountId: args.profile.providerAccountId,
+        email: normalizedEmail,
+        user: {
+          create: {
+            name: safeName,
+            email: normalizedEmail,
+            passwordHash: randomPasswordHash,
+            role: 'READER',
+          },
+        },
+      },
+      select: {
+        user: {
+          select: authUserSelect,
+        },
+      },
+    });
+
+    return {
+      status: 'created',
+      user: createdAccount.user,
+      normalizedEmail,
+    };
+  } catch (error) {
+    if (!isPrismaUniqueConstraintError(error)) {
+      throw error;
+    }
+
+    const linkedAfterConflict = await findLinkedAccount();
+    if (linkedAfterConflict) {
+      await syncGoogleAccountEmail({
+        app: args.app,
+        providerAccountId: args.profile.providerAccountId,
+        normalizedEmail,
+        currentEmail: linkedAfterConflict.email,
+      });
+
+      return {
+        status: 'linked',
+        user: linkedAfterConflict.user,
+        normalizedEmail,
+      };
+    }
+
+    const existingUserAfterConflict = await args.app.prisma.user.findUnique({
+      where: {
+        email: normalizedEmail,
+      },
+      select: authUserSelect,
+    });
+
+    if (existingUserAfterConflict) {
+      return {
+        status: 'needs-link',
+        user: existingUserAfterConflict,
+        normalizedEmail,
+      };
+    }
+
+    throw error;
+  }
 };
 
 const ensureTrustedOrigin = (args: {
@@ -1240,87 +1450,44 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
       return;
     }
 
-    const normalizedEmail = normalizeEmail(googleProfile.email);
-
-    const linkedAccount = await app.prisma.account.findUnique({
-      where: {
-        provider_providerAccountId: {
-          provider: 'GOOGLE',
-          providerAccountId: googleProfile.providerAccountId,
-        },
-      },
-      include: {
-        user: {
-          select: authUserSelect,
-        },
-      },
+    const accountResolution = await resolveGoogleAccount({
+      app,
+      profile: googleProfile,
     });
 
-    let user = linkedAccount?.user ?? null;
-
-    if (!user) {
-      const existingUser = await app.prisma.user.findUnique({
-        where: {
-          email: normalizedEmail,
-        },
-        select: authUserSelect,
+    if (accountResolution.status === 'needs-link') {
+      const preAuth = await createPreAuthSession({
+        app,
+        reply,
+        request,
+        userId: accountResolution.user.id,
+        purpose: 'LINK_GOOGLE',
+        redirectPath: callbackPath,
+        provider: 'GOOGLE',
+        providerAccountId: googleProfile.providerAccountId,
+        providerEmail: accountResolution.normalizedEmail,
+        providerEmailVerified: true,
       });
 
-      if (existingUser) {
-        const preAuth = await createPreAuthSession({
-          app,
-          reply,
-          request,
-          userId: existingUser.id,
-          purpose: 'LINK_GOOGLE',
-          redirectPath: callbackPath,
-          provider: 'GOOGLE',
-          providerAccountId: googleProfile.providerAccountId,
-          providerEmail: normalizedEmail,
-          providerEmailVerified: true,
-        });
+      const challenge = await sendTwoFactorForPreAuth({
+        app,
+        request,
+        preAuth,
+      });
 
-        const challenge = await sendTwoFactorForPreAuth({
-          app,
-          request,
-          preAuth,
-        });
-
-        if (challenge.ok === false) {
-          clearPreAuthCookie(reply);
-          reply.redirect(buildAppRedirectUrl(callbackPath, { auth_error: '2fa_delivery_failed' }));
-          return;
-        }
-
-        reply.redirect(buildAppRedirectUrl(callbackPath, { auth: '2fa' }));
+      if (challenge.ok === false) {
+        clearPreAuthCookie(reply);
+        reply.redirect(buildAppRedirectUrl(callbackPath, { auth_error: '2fa_delivery_failed' }));
         return;
       }
 
-      const fallbackName = googleProfile.name ?? normalizedEmail.split('@')[0] ?? 'reader';
-      const trimmedName = fallbackName.trim();
-      const safeName = (trimmedName.length >= 2 ? trimmedName : 'reader').slice(0, 120);
+      reply.redirect(buildAppRedirectUrl(callbackPath, buildTwoFactorRedirectQuery(challenge)));
+      return;
+    }
 
-      const randomPasswordHash = await hashPassword(createOpaqueToken());
+    const user = accountResolution.user;
 
-      user = await app.prisma.user.create({
-        data: {
-          name: safeName,
-          email: normalizedEmail,
-          passwordHash: randomPasswordHash,
-          role: 'READER',
-        },
-        select: authUserSelect,
-      });
-
-      await app.prisma.account.create({
-        data: {
-          userId: user.id,
-          provider: 'GOOGLE',
-          providerAccountId: googleProfile.providerAccountId,
-          email: normalizedEmail,
-        },
-      });
-
+    if (accountResolution.status === 'created') {
       await writeAuditLog({
         prisma: app.prisma,
         actorUserId: user.id,
@@ -1355,7 +1522,7 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
         return;
       }
 
-      reply.redirect(buildAppRedirectUrl(callbackPath, { auth: '2fa' }));
+      reply.redirect(buildAppRedirectUrl(callbackPath, buildTwoFactorRedirectQuery(challenge)));
       return;
     }
 
