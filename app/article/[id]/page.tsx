@@ -6,6 +6,7 @@ import { BookmarkButton } from '@/components/BookmarkButton';
 import { ImageCarousel } from '@/components/ImageCarousel';
 import { ContentImage } from '@/components/ContentImage';
 import { ArticleCommentsSection } from '@/components/discussion/DiscussionThread';
+import { ArticleVisitTracker } from '@/components/analytics/ArticleVisitTracker';
 import { buildArticleContentBlocks } from '@/services/content/articleHtmlBlocks';
 import type { ArticleCarouselImage } from '@/types';
 import { formatDate } from '@/utils/formatDate';
@@ -125,6 +126,19 @@ export default async function ArticlePage({ params }: Props) {
 
   return (
     <article className="min-h-screen bg-paper pb-24 transition-colors duration-300 dark:bg-[color:var(--color-canvas)]">
+      <ArticleVisitTracker
+        article={{
+          internalArticleId: article.internalArticleId,
+          source: article.source,
+          externalId: article.externalId,
+          slug: article.slug,
+          canonicalPath: article.canonicalPath,
+          title: article.title,
+          excerpt: article.excerpt,
+          feature_image: article.feature_image,
+          type: article.type,
+        }}
+      />
       <div
         className={`border-b border-[color:var(--line-soft)] px-4 py-16 sm:py-20 ${
           isNovaArticle

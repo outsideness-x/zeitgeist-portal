@@ -79,11 +79,17 @@ workflow rules:
 
 analytics is privacy-friendly and article-centric.
 
-- client sends `POST /api/analytics/view` with internal article id
 - backend manages random `zg_vid` visitor cookie
+- frontend sends `POST /api/analytics/activity` for site pageviews and heartbeat presence
+- article pages send `POST /api/analytics/activity` with internal article id so site traffic and article views share one visitor identity
 - daily aggregates in `article_daily_stats` (`views`, `unique_visitors`)
 - unique dedup key in `article_daily_visitor` (`article_id`, `date`, `visitor_id`)
+- site presence is stored in `site_visitor` (`visitor_id`, `user_id`, `last_seen_at`)
+- site pageview buckets are stored in `site_traffic_bucket` (`hour` / `day`)
+- guest dedup rows live in `site_daily_visitor` and power admin dashboard anonymous-user counts
 - no raw ip storage
+- online is defined as activity within the last 10 minutes
+- anonymous audience is defined as unique guest visitor ids with at least one anonymous pageview in the last 30 days
 - upsert and transactional increments keep counters correct under concurrent writes
 - visitor dedup rows in `article_daily_visitor` should be pruned by scheduled retention jobs
 
@@ -115,9 +121,9 @@ analytics is privacy-friendly and article-centric.
 
 ## frontend cabinets
 
-- `/account`: bookmarks, submission statuses, review messages, submit entrypoint, and author analytics section
-- `/admin`: queue filtering, submission details, request changes, reject, approve + publish
-- article page: ensure internal mapping, send view event, support bookmark and reaction actions
+- `/account`: bookmarks, submission statuses, review messages, submit entrypoint, author analytics, and admin-only editorial + site analytics sections
+- `/admin`: legacy compatibility route that redirects into admin sections of `/account`
+- article page: ensure internal mapping, send analytics activity event, support bookmark and reaction actions
 
 ## testing scope
 

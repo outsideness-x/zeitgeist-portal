@@ -68,6 +68,11 @@ enum OneTimeCodePurpose {
   DISABLE_2FA
 }
 
+enum TrafficBucketGranularity {
+  HOUR
+  DAY
+}
+
 model User {
   id              String         @id @default(cuid())
   name            String
@@ -95,6 +100,8 @@ model User {
   discussionLikes DiscussionLike[]
   adminNotificationsReceived AdminNotification[] @relation("admin_notification_recipient")
   adminNotificationsTriggered AdminNotification[] @relation("admin_notification_actor")
+  siteVisitors     SiteVisitor[]      @relation("site_visitor_user")
+  siteDailyVisitors SiteDailyVisitor[] @relation("site_daily_visitor_user")
 }
 
 model Session {
@@ -368,6 +375,52 @@ model ArticleDailyVisitor {
 
   @@unique([articleId, date, visitorId])
   @@index([date])
+}
+
+model SiteVisitor {
+  id          String   @id @default(cuid())
+  visitorId   String   @unique
+  userId      String?
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  lastPath    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User?    @relation("site_visitor_user", fields: [userId], references: [id], onDelete: SetNull)
+  dailyVisits SiteDailyVisitor[]
+
+  @@index([lastSeenAt])
+  @@index([userId, lastSeenAt])
+}
+
+model SiteTrafficBucket {
+  id                     String                   @id @default(cuid())
+  granularity            TrafficBucketGranularity
+  bucketStart            DateTime
+  pageViews              Int                      @default(0)
+  authenticatedPageViews Int                      @default(0)
+  anonymousPageViews     Int                      @default(0)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  @@unique([granularity, bucketStart])
+  @@index([bucketStart])
+}
+
+model SiteDailyVisitor {
+  id              String      @id @default(cuid())
+  date            DateTime
+  visitorId       String
+  userId          String?
+  isAuthenticated Boolean
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  visitor         SiteVisitor @relation(fields: [visitorId], references: [visitorId], onDelete: Cascade)
+  user            User?       @relation("site_daily_visitor_user", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([date, visitorId, isAuthenticated])
+  @@index([isAuthenticated, date, visitorId])
+  @@index([userId])
 }
 
 model DiscussionEntry {

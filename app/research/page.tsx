@@ -29,7 +29,7 @@ export default async function ResearchPage({ searchParams }: ResearchPageProps) 
         <p className="section-kicker">academic index</p>
         <h1 className="section-title">Каталог исследований</h1>
         <p className="section-lead max-w-3xl">
-          Рецензируемые статьи, архивные находки и академические материалы. Мы усилили структуру и контраст, чтобы научные тексты читались увереннее и без визуального шума.
+          Рецензируемые статьи, архивные находки и академические материалы.
         </p>
       </section>
 

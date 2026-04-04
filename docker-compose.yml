@@ -118,13 +118,13 @@ services:
     container_name: zeitgeist-ghost
     environment:
       NODE_ENV: production
-      url: https://api.zeitgeist.host/ghost
+      url: https://api.zeitgeist.host
       database__client: sqlite3
       database__connection__filename: /var/lib/ghost/content/data/ghost.db
     volumes:
       - ghost_content:/var/lib/ghost/content
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:2368/').then((r)=>process.exit(r.status < 500 ? 0 : 1)).catch(()=>process.exit(1))\""]
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:2368/ghost/').then((r)=>process.exit(r.status < 500 ? 0 : 1)).catch(()=>process.exit(1))\""]
       interval: 20s
       timeout: 5s
       retries: 10

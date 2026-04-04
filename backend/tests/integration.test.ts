@@ -3,6 +3,7 @@ import supertest from 'supertest';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildServer } from '../src/server.js';
 import { hashToken } from '../src/lib/auth.js';
+import { utcMonthStart } from '../src/lib/dates.js';
 
 vi.mock('../src/lib/storage.js', () => {
   return {
@@ -79,6 +80,9 @@ describe.skipIf(!canRun)('backend integration', () => {
 
     // this cleanup keeps tests isolated while reusing one db in local environments
     await app.prisma.submissionPublication.deleteMany();
+    await app.prisma.siteDailyVisitor.deleteMany();
+    await app.prisma.siteTrafficBucket.deleteMany();
+    await app.prisma.siteVisitor.deleteMany();
     await app.prisma.articleDailyVisitor.deleteMany();
     await app.prisma.articleDailyStats.deleteMany();
     await app.prisma.reaction.deleteMany();
@@ -691,6 +695,148 @@ describe.skipIf(!canRun)('backend integration', () => {
     expect(secondView.status).toBe(200);
     expect(secondView.body.views).toBe(2);
     expect(secondView.body.uniqueVisitors).toBe(1);
+  });
+
+  it('site activity tracking aggregates guest and authenticated traffic for admin dashboard', async () => {
+    await app.prisma.siteDailyVisitor.deleteMany();
+    await app.prisma.siteTrafficBucket.deleteMany();
+    await app.prisma.siteVisitor.deleteMany();
+    await app.prisma.articleDailyVisitor.deleteMany();
+    await app.prisma.articleDailyStats.deleteMany();
+
+    const articleId = await ensureArticle('site-analytics');
+
+    const anonymousArticleView = await request
+      .post('/api/analytics/activity')
+      .send({
+        path: `/article/site-analytics-${randomUUID()}`,
+        articleId,
+        kind: 'pageview',
+      });
+
+    expect(anonymousArticleView.status).toBe(200);
+    expect(anonymousArticleView.body.article.views).toBe(1);
+    expect(anonymousArticleView.body.article.uniqueVisitors).toBe(1);
+
+    const visitorCookie = (anonymousArticleView.headers['set-cookie'] as string[]).find((item) => item.startsWith('zg_vid='));
+    expect(visitorCookie).toBeTruthy();
+
+    const guestHeartbeat = await request
+      .post('/api/analytics/activity')
+      .set('Cookie', visitorCookie ? [visitorCookie] : [])
+      .send({
+        path: '/journal',
+        kind: 'heartbeat',
+      });
+
+    expect(guestHeartbeat.status).toBe(200);
+
+    const readerIdentity = await registerUser(`reader-${randomUUID()}@example.com`, 'reader');
+    const forbiddenDashboardResponse = await request
+      .get('/api/admin/analytics/dashboard')
+      .set('Cookie', readerIdentity.cookies);
+
+    expect(forbiddenDashboardResponse.status).toBe(403);
+
+    const adminIdentity = await registerUser(`analytics-admin-${randomUUID()}@example.com`, 'analytics admin');
+    await app.prisma.user.update({
+      where: {
+        id: adminIdentity.user.id,
+      },
+      data: {
+        role: 'ADMIN',
+      },
+    });
+
+    const authenticatedPageView = await request
+      .post('/api/analytics/activity')
+      .set('Cookie', adminIdentity.cookies)
+      .send({
+        path: '/account',
+        kind: 'pageview',
+      });
+
+    expect(authenticatedPageView.status).toBe(200);
+    expect(authenticatedPageView.body.article).toBeNull();
+
+    const currentMonthStart = utcMonthStart();
+    const previousMonthStart = utcMonthStart(new Date(Date.UTC(
+      currentMonthStart.getUTCFullYear(),
+      currentMonthStart.getUTCMonth() - 1,
+      1,
+    )));
+    const previousMonthDays = Math.round((currentMonthStart.getTime() - previousMonthStart.getTime()) / (24 * 60 * 60 * 1000));
+    const previousMonthBucket = new Date(previousMonthStart.getTime() + (Math.min(4, previousMonthDays - 1) * 24 * 60 * 60 * 1000));
+
+    await app.prisma.siteTrafficBucket.create({
+      data: {
+        granularity: 'DAY',
+        bucketStart: previousMonthBucket,
+        pageViews: 7,
+        authenticatedPageViews: 3,
+        anonymousPageViews: 4,
+      },
+    });
+
+    const dashboardResponse = await request
+      .get('/api/admin/analytics/dashboard')
+      .set('Cookie', adminIdentity.cookies);
+
+    expect(dashboardResponse.status).toBe(200);
+
+    const [expectedRegisteredUsers, expectedAnonymousVisitors, expectedRegisteredOnline, expectedAnonymousOnline] = await Promise.all([
+      app.prisma.user.count(),
+      app.prisma.siteDailyVisitor.findMany({
+        where: {
+          isAuthenticated: false,
+        },
+        distinct: ['visitorId'],
+        select: {
+          visitorId: true,
+        },
+      }).then((rows) => rows.length),
+      app.prisma.siteVisitor.findMany({
+        where: {
+          userId: {
+            not: null,
+          },
+        },
+        distinct: ['userId'],
+        select: {
+          userId: true,
+        },
+      }).then((rows) => rows.length),
+      app.prisma.siteVisitor.count({
+        where: {
+          userId: null,
+        },
+      }),
+    ]);
+
+    const dashboard = dashboardResponse.body as {
+      totals: {
+        registeredUsers: number;
+        anonymousVisitors: number;
+        registeredOnline: number;
+        anonymousOnline: number;
+      };
+      series: {
+        day: Array<{ pageViews: number; authenticatedPageViews: number; anonymousPageViews: number }>;
+        previousMonth: Array<{ pageViews: number; authenticatedPageViews: number; anonymousPageViews: number }>;
+      };
+    };
+
+    expect(dashboard.totals.registeredUsers).toBe(expectedRegisteredUsers);
+    expect(dashboard.totals.anonymousVisitors).toBe(expectedAnonymousVisitors);
+    expect(dashboard.totals.registeredOnline).toBe(expectedRegisteredOnline);
+    expect(dashboard.totals.anonymousOnline).toBe(expectedAnonymousOnline);
+    expect(dashboard.series.day.reduce((sum, point) => sum + point.pageViews, 0)).toBe(2);
+    expect(dashboard.series.day.reduce((sum, point) => sum + point.authenticatedPageViews, 0)).toBe(1);
+    expect(dashboard.series.day.reduce((sum, point) => sum + point.anonymousPageViews, 0)).toBe(1);
+    expect(dashboard.series.previousMonth).toHaveLength(previousMonthDays);
+    expect(dashboard.series.previousMonth.reduce((sum, point) => sum + point.pageViews, 0)).toBe(7);
+    expect(dashboard.series.previousMonth.reduce((sum, point) => sum + point.authenticatedPageViews, 0)).toBe(3);
+    expect(dashboard.series.previousMonth.reduce((sum, point) => sum + point.anonymousPageViews, 0)).toBe(4);
   });
 
   it('submission create upload-init and upload-complete flow works', async () => {

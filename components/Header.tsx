@@ -37,7 +37,6 @@ export const Header: React.FC = () => {
     ? [
       ...baseNavItems,
       { href: '/account', label: 'Кабинет' },
-      ...(user.role === 'ADMIN' ? [{ href: '/admin', label: 'Админ' }] : []),
     ]
     : baseNavItems;
   const desktopNavItems = [
@@ -259,7 +258,7 @@ export const Header: React.FC = () => {
                   Войти
                 </button>
               ) : (
-                <Link href={user.role === 'ADMIN' ? '/admin' : '/account'} className="desktop-auth-link desktop-auth-link--user">
+                <Link href="/account" className="desktop-auth-link desktop-auth-link--user">
                   <UserAvatar
                     name={user.name}
                     avatarUrl={user.avatarDataUrl ?? null}
@@ -267,7 +266,7 @@ export const Header: React.FC = () => {
                     textClassName="text-xs"
                     className="shrink-0"
                   />
-                  <span className="hidden xl:inline">{user.role === 'ADMIN' ? 'Админ' : 'Кабинет'}</span>
+                  <span className="hidden xl:inline">Кабинет</span>
                 </Link>
               )}
 

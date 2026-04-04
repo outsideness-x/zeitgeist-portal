@@ -31,7 +31,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
         <p className="section-kicker">редакционный раздел</p>
         <h1 className="section-title">Журнал</h1>
         <p className="section-lead max-w-2xl">
-          Эссе об искусстве, истории и литературе Востока. Более спокойная сетка и крупнее набранный текст делают вход в материалы легче и на мобильных, и на больших экранах.
+          Короткие эссе об искусстве, истории и литературе
         </p>
       </section>
 
