@@ -2,7 +2,11 @@
 
 import { useTheme } from "next-themes";
 
-export const ThemeToggle = () => {
+type ThemeToggleProps = {
+  className?: string;
+};
+
+export const ThemeToggle = ({ className = "" }: ThemeToggleProps) => {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = typeof resolvedTheme === "string";
   const isDark = resolvedTheme === "dark";
@@ -11,7 +15,7 @@ export const ThemeToggle = () => {
   return (
     <button
       onClick={() => setTheme(nextTheme)}
-      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--line-soft)] bg-[color:var(--surface-raised)] text-[color:var(--muted-strong)] shadow-[var(--shadow-soft)] transition-colors hover:border-[color:var(--line-strong)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:h-11 sm:w-11"
+      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--line-soft)] bg-[color:var(--surface-raised)] text-[color:var(--muted-strong)] shadow-[var(--shadow-soft)] transition-colors hover:border-[color:var(--line-strong)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:h-11 sm:w-11 ${className}`.trim()}
       aria-label={mounted ? (isDark ? "Переключить на светлую тему" : "Переключить на темную тему") : "Переключить тему"}
       type="button"
     >

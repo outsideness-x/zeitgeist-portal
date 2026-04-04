@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, Manrope, Merriweather, Prata } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { CustomCursor } from "@/components/CustomCursor";
 import { Providers } from "./providers"; // provider import
 
 const prata = Prata({
@@ -52,9 +53,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="bg-paper text-ink font-serif flex min-h-screen flex-col antialiased transition-colors duration-300">
         <div className="noise-overlay"></div>
+        <CustomCursor />
         <Providers>
           <Header />
-          <main className="flex-grow">
+          <main className="page-content flex-grow">
             {children}
           </main>
           <Footer />

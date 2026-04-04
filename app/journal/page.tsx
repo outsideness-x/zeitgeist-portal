@@ -27,7 +27,7 @@ export default async function JournalPage({ searchParams }: JournalPageProps) {
 
   return (
     <div className="page-shell-narrow py-16 sm:py-20">
-      <section className="site-panel overflow-hidden rounded-[clamp(1.75rem,3vw,2rem)] bg-[radial-gradient(circle_at_top_left,rgba(141,67,57,0.1),transparent_36%)] px-5 py-10 sm:px-10 sm:py-14">
+      <section className="site-panel overflow-hidden rounded-[clamp(1.75rem,3vw,2rem)] bg-[radial-gradient(circle_at_top_left,rgba(141,67,57,0.1),transparent_36%)] px-5 py-10 sm:px-10 sm:py-14 dark:bg-[color:var(--color-surface)]">
         <p className="section-kicker">редакционный раздел</p>
         <h1 className="section-title">Журнал</h1>
         <p className="section-lead max-w-2xl">

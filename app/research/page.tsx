@@ -25,7 +25,7 @@ export default async function ResearchPage({ searchParams }: ResearchPageProps) 
 
   return (
     <div className="page-shell-narrow py-16 sm:py-20">
-      <section className="site-panel overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_top_right,rgba(50,76,171,0.08),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(141,67,57,0.06),transparent_26%)] px-6 py-10 sm:px-10 sm:py-14">
+      <section className="site-panel overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_top_right,rgba(50,76,171,0.08),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(141,67,57,0.06),transparent_26%)] px-6 py-10 sm:px-10 sm:py-14 dark:bg-[color:var(--color-surface)]">
         <p className="section-kicker">academic index</p>
         <h1 className="section-title">Каталог исследований</h1>
         <p className="section-lead max-w-3xl">

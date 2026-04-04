@@ -8,6 +8,7 @@ import { ContentImage } from '@/components/ContentImage';
 import { ArticleCommentsSection } from '@/components/discussion/DiscussionThread';
 import { buildArticleContentBlocks } from '@/services/content/articleHtmlBlocks';
 import type { ArticleCarouselImage } from '@/types';
+import { formatDate } from '@/utils/formatDate';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -100,11 +101,7 @@ export default async function ArticlePage({ params }: Props) {
     ? article.authors.map((author) => author.name).join(', ')
     : 'Редакция';
   const readingTime = article.reading_time ? `${article.reading_time} мин чтения` : 'короткое чтение';
-  const formattedDate = new Date(article.published_at).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const formattedDate = formatDate(article.published_at);
   const galleryImages = article.gallery_images ?? [];
   const hasCarousel = galleryImages.length >= 2;
   const hasSingleGalleryImage = galleryImages.length === 1;
@@ -127,19 +124,19 @@ export default async function ArticlePage({ params }: Props) {
       : 'bg-accent text-white';
 
   return (
-    <article className="min-h-screen bg-paper pb-24 transition-colors duration-300 dark:bg-card-bg">
+    <article className="min-h-screen bg-paper pb-24 transition-colors duration-300 dark:bg-[color:var(--color-canvas)]">
       <div
         className={`border-b border-[color:var(--line-soft)] px-4 py-16 sm:py-20 ${
           isNovaArticle
             ? 'bg-[radial-gradient(circle_at_top,rgba(88,242,157,0.09),transparent_34%)]'
-            : 'bg-[radial-gradient(circle_at_top,rgba(141,67,57,0.08),transparent_36%)]'
+            : 'bg-[radial-gradient(circle_at_top,rgba(141,67,57,0.08),transparent_36%)] dark:bg-[color:var(--color-canvas)]'
         }`}
       >
         <div className="page-shell-narrow">
           <div className="site-panel rounded-[2rem] px-5 py-8 text-center sm:px-8 sm:py-12 lg:px-10 lg:py-14">
             <div className="flex justify-center gap-2">
               <span className={`inline-flex rounded-full px-3 py-1 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.22em] ${articleBadgeClass}`}>
-              {article.type === 'nova' ? 'Nova Express' : article.type === 'research' ? 'исследование' : 'журнал'}
+                {article.type === 'nova' ? 'Nova Express' : article.type === 'research' ? 'Исследование' : 'Журнал'}
               </span>
             </div>
             <h1 className="mx-auto mt-6 max-w-4xl font-display text-[clamp(2.25rem,7vw,4.75rem)] leading-[0.98] tracking-[-0.035em] text-ink dark:text-gray-100">
@@ -214,7 +211,7 @@ export default async function ArticlePage({ params }: Props) {
               fallbackClassName="flex h-full items-center justify-center bg-sepia px-6 text-center font-sans text-sm uppercase tracking-widest text-gray-600"
               fallbackLabel="обложка статьи недоступна"
             />
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-paper dark:from-[#121212] to-transparent"></div>
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-paper dark:from-[color:var(--color-canvas)] to-transparent"></div>
           </div>
         </div>
       )}

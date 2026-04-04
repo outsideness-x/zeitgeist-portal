@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { backendRequest } from '@/services/backend/client';
@@ -17,6 +17,8 @@ type BookmarkButtonProps = {
     feature_image?: string;
     type: 'journal' | 'research' | 'nova';
   };
+  variant?: 'default' | 'card';
+  deferInitialStatus?: boolean;
 };
 
 type EnsureArticleResponse = {
@@ -54,10 +56,15 @@ const normalizeFeatureImageForEnsure = (rawValue?: string): string | undefined =
   return undefined;
 };
 
-export const BookmarkButton = ({ article }: BookmarkButtonProps): JSX.Element => {
+export const BookmarkButton = ({
+  article,
+  variant = 'default',
+  deferInitialStatus = variant === 'card',
+}: BookmarkButtonProps): JSX.Element => {
   const { user, csrfToken, loading: authLoading } = useAuth();
   const [internalArticleId, setInternalArticleId] = useState<string | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
+  const [statusLoaded, setStatusLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -87,6 +94,24 @@ export const BookmarkButton = ({ article }: BookmarkButtonProps): JSX.Element =>
     window.dispatchEvent(new CustomEvent('zg:open-auth-modal'));
   };
 
+  const ensureArticleExists = useCallback(async (): Promise<string> => {
+    const ensured = await backendRequest<EnsureArticleResponse>({
+      path: '/api/articles/ensure',
+      method: 'POST',
+      body: ensurePayload,
+    });
+
+    return ensured.articleId;
+  }, [ensurePayload]);
+
+  const fetchBookmarkStatus = useCallback(async (articleId: string): Promise<boolean> => {
+    const status = await backendRequest<BookmarkStatusResponse>({
+      path: `/api/me/bookmarks/status?articleId=${encodeURIComponent(articleId)}`,
+    });
+
+    return Boolean(status.bookmarked);
+  }, []);
+
   useEffect(() => {
     let active = true;
 
@@ -99,8 +124,18 @@ export const BookmarkButton = ({ article }: BookmarkButtonProps): JSX.Element =>
       if (!user) {
         setInternalArticleId(null);
         setBookmarked(false);
+        setStatusLoaded(false);
         setErrorMessage('');
         setIsLoading(false);
+        return;
+      }
+
+      if (deferInitialStatus) {
+        setInternalArticleId(null);
+        setBookmarked(false);
+        setErrorMessage('');
+        setIsLoading(false);
+        setStatusLoaded(false);
         return;
       }
 
@@ -108,27 +143,21 @@ export const BookmarkButton = ({ article }: BookmarkButtonProps): JSX.Element =>
       setErrorMessage('');
 
       try {
-        const ensured = await backendRequest<EnsureArticleResponse>({
-          path: '/api/articles/ensure',
-          method: 'POST',
-          body: ensurePayload,
-        });
+        const articleId = await ensureArticleExists();
 
         if (!active) {
           return;
         }
 
-        setInternalArticleId(ensured.articleId);
-
-        const status = await backendRequest<BookmarkStatusResponse>({
-          path: `/api/me/bookmarks/status?articleId=${encodeURIComponent(ensured.articleId)}`,
-        });
+        const nextBookmarked = await fetchBookmarkStatus(articleId);
 
         if (!active) {
           return;
         }
 
-        setBookmarked(Boolean(status.bookmarked));
+        setInternalArticleId(articleId);
+        setBookmarked(nextBookmarked);
+        setStatusLoaded(true);
       } catch (error) {
         if (!active) {
           return;
@@ -136,6 +165,7 @@ export const BookmarkButton = ({ article }: BookmarkButtonProps): JSX.Element =>
 
         setInternalArticleId(null);
         setBookmarked(false);
+        setStatusLoaded(false);
         setErrorMessage(error instanceof Error ? error.message : 'не удалось загрузить закладки');
       } finally {
         if (active) {
@@ -149,7 +179,29 @@ export const BookmarkButton = ({ article }: BookmarkButtonProps): JSX.Element =>
     return () => {
       active = false;
     };
-  }, [authLoading, ensurePayload, user]);
+  }, [authLoading, deferInitialStatus, ensureArticleExists, fetchBookmarkStatus, user]);
+
+  const primeStatus = async (): Promise<void> => {
+    if (authLoading || !user || isLoading || isSubmitting || statusLoaded) {
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      const articleId = internalArticleId ?? await ensureArticleExists();
+      const nextBookmarked = await fetchBookmarkStatus(articleId);
+
+      setInternalArticleId(articleId);
+      setBookmarked(nextBookmarked);
+      setStatusLoaded(true);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'не удалось загрузить закладки');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleToggle = async (): Promise<void> => {
     if (authLoading || isLoading || isSubmitting) {
@@ -162,35 +214,44 @@ export const BookmarkButton = ({ article }: BookmarkButtonProps): JSX.Element =>
       return;
     }
 
-    if (!internalArticleId) {
-      setErrorMessage('не удалось определить статью');
-      return;
-    }
-
-    const previousValue = bookmarked;
-    const nextValue = !previousValue;
-
     setErrorMessage('');
-    setBookmarked(nextValue);
     setIsSubmitting(true);
 
+    let resolvedArticleId = internalArticleId;
+    let previousValue = bookmarked;
+
     try {
+      if (!resolvedArticleId) {
+        resolvedArticleId = await ensureArticleExists();
+        setInternalArticleId(resolvedArticleId);
+      }
+
+      if (!statusLoaded) {
+        previousValue = await fetchBookmarkStatus(resolvedArticleId);
+        setBookmarked(previousValue);
+        setStatusLoaded(true);
+      }
+
+      const nextValue = !previousValue;
+      setBookmarked(nextValue);
+
       const response = nextValue
         ? await backendRequest<BookmarkMutationResponse>({
           path: '/api/me/bookmarks',
           method: 'POST',
           csrfToken,
           body: {
-            articleId: internalArticleId,
+            articleId: resolvedArticleId,
           },
         })
         : await backendRequest<BookmarkMutationResponse>({
-          path: `/api/me/bookmarks/${encodeURIComponent(internalArticleId)}`,
+          path: `/api/me/bookmarks/${encodeURIComponent(resolvedArticleId)}`,
           method: 'DELETE',
           csrfToken,
         });
 
       setBookmarked(Boolean(response.bookmarked));
+      setStatusLoaded(true);
     } catch (error) {
       setBookmarked(previousValue);
       setErrorMessage(error instanceof Error ? error.message : 'не удалось обновить закладку');
@@ -201,22 +262,29 @@ export const BookmarkButton = ({ article }: BookmarkButtonProps): JSX.Element =>
 
   const busy = authLoading || isLoading || isSubmitting;
   const label = bookmarked ? 'в закладках' : 'в закладки';
+  const isCardVariant = variant === 'card';
 
   return (
     <div className="flex flex-col items-end gap-1">
       <button
         type="button"
         onClick={() => void handleToggle()}
+        onMouseEnter={deferInitialStatus ? () => void primeStatus() : undefined}
+        onFocus={deferInitialStatus ? () => void primeStatus() : undefined}
         disabled={busy}
         aria-label={bookmarked ? 'убрать из закладок' : 'добавить в закладки'}
         aria-pressed={bookmarked}
-        className={`inline-flex min-h-11 min-w-11 items-center gap-2 rounded-md p-2 text-sm transition-opacity duration-200 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 ${
-          bookmarked
-            ? 'text-accent dark:text-accent'
-            : 'text-ink dark:text-gray-300'
-        }`}
+        data-active={bookmarked ? 'true' : 'false'}
+        data-busy={busy ? 'true' : 'false'}
+        className={isCardVariant
+          ? 'article-card-bookmark h-12 w-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-60'
+          : `inline-flex min-h-11 min-w-11 items-center gap-2 rounded-md p-2 text-sm transition-opacity duration-200 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 ${
+            bookmarked
+              ? 'text-accent dark:text-accent'
+              : 'text-ink dark:text-gray-300'
+          }`}
       >
-        <span className="inline-flex h-11 w-11 items-center justify-center" aria-hidden="true">
+        <span className={`${isCardVariant ? 'inline-flex h-12 w-12 items-center justify-center' : 'inline-flex h-11 w-11 items-center justify-center'}`} aria-hidden="true">
           {busy ? (
             <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-30" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
@@ -238,10 +306,15 @@ export const BookmarkButton = ({ article }: BookmarkButtonProps): JSX.Element =>
             </svg>
           )}
         </span>
-        <span className="hidden font-sans text-xs uppercase tracking-wider sm:inline">{label}</span>
+        {!isCardVariant ? (
+          <span className="hidden font-sans text-xs uppercase tracking-wider sm:inline">{label}</span>
+        ) : null}
       </button>
       {errorMessage && (
-        <p className="max-w-56 text-right font-sans text-[10px] uppercase tracking-wider text-red-600">
+        <p className={isCardVariant
+          ? 'max-w-40 text-right font-sans text-[9px] uppercase tracking-[0.16em] text-red-200/90'
+          : 'max-w-56 text-right font-sans text-[10px] uppercase tracking-wider text-red-600'}
+        >
           {errorMessage}
         </p>
       )}

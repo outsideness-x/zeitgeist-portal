@@ -15,6 +15,7 @@ export const Header: React.FC = () => {
   const [isAuthOpen, setAuthOpen] = useState(false);
   const [authIntent, setAuthIntent] = useState<AuthModalIntent>(null);
   const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const { user, logout } = useAuth();
 
@@ -39,6 +40,12 @@ export const Header: React.FC = () => {
       ...(user.role === 'ADMIN' ? [{ href: '/admin', label: 'Админ' }] : []),
     ]
     : baseNavItems;
+  const desktopNavItems = [
+    { href: '/journal', label: 'Журнал' },
+    { href: '/library', label: 'Архив' },
+    { href: '/research', label: 'Исследования' },
+    { href: '/nova-express', label: 'Nova Express' },
+  ];
 
   const isItemActive = (path: string) => {
     return pathname === path || pathname.startsWith(`${path}/`);
@@ -171,16 +178,39 @@ export const Header: React.FC = () => {
     }
   }, [pathname, router, user]);
 
+  useEffect(() => {
+    const syncScrolledState = () => {
+      setIsScrolled(window.scrollY > 8);
+    };
+
+    const handleResize = () => {
+      if (window.innerWidth >= 900) {
+        setMenuOpen(false);
+      }
+    };
+
+    syncScrolledState();
+    handleResize();
+
+    window.addEventListener('scroll', syncScrolledState, { passive: true });
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('scroll', syncScrolledState);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-[color:var(--line-soft)] bg-paper/85 backdrop-blur-xl transition-all duration-300 supports-[backdrop-filter]:bg-paper/75 dark:bg-[#120f0e]/82">
+      <header className={`site-header ${isScrolled ? 'scrolled' : ''}`} role="banner">
         <div className="page-shell">
-          <div className="flex min-h-[4.75rem] items-center justify-between gap-2 py-3 sm:min-h-[5.25rem] sm:gap-3">
-            <div className="flex shrink-0 items-center">
+          <div className="site-header-inner">
+            <div className="site-header-leading">
               <button
                 ref={triggerRef}
                 type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--line-soft)] bg-[color:var(--surface-raised)] text-[color:var(--muted-strong)] shadow-[var(--shadow-soft)] transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="burger inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[color:var(--line-soft)] bg-[color:var(--surface-raised)] text-[color:var(--muted-strong)] shadow-[var(--shadow-soft)] transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 onClick={() => setMenuOpen((prev) => !prev)}
                 aria-expanded={isMenuOpen}
                 aria-controls="mobile-menu"
@@ -196,27 +226,60 @@ export const Header: React.FC = () => {
                   </svg>
                 )}
               </button>
-            </div>
 
-            {/* logo */}
-            <div className="flex min-w-0 flex-1 items-center">
-              <Link href="/" className="inline-flex min-w-0 flex-col leading-none text-ink transition-colors hover:text-accent dark:text-gray-100">
-                <span className="font-display text-[clamp(1.2rem,4.8vw,1.75rem)] tracking-[clamp(0.12em,0.65vw,0.22em)]">ZEITGEIST</span>
-                <span className="mt-1 hidden font-sans text-[0.58rem] font-medium uppercase tracking-[0.3em] text-[color:var(--muted)] 2xl:block">
-                  portal for eastern studies
-                </span>
+              <Link href="/" className="site-logo" aria-label="Zeitgeist — главная">
+                ZEITGEIST
               </Link>
             </div>
 
-            {/* actions */}
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-              <ThemeToggle />
+            <nav className="main-nav" aria-label="Основная навигация">
+              {desktopNavItems.map((item) => {
+                const isActive = isItemActive(item.href);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`nav-link ${isActive ? 'active' : ''}`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="site-header-actions">
+              {!user ? (
+                <button
+                  type="button"
+                  onClick={openAuthModal}
+                  className="desktop-auth-link"
+                >
+                  Войти
+                </button>
+              ) : (
+                <Link href={user.role === 'ADMIN' ? '/admin' : '/account'} className="desktop-auth-link desktop-auth-link--user">
+                  <UserAvatar
+                    name={user.name}
+                    avatarUrl={user.avatarDataUrl ?? null}
+                    sizeClassName="h-8 w-8"
+                    textClassName="text-xs"
+                    className="shrink-0"
+                  />
+                  <span className="hidden xl:inline">{user.role === 'ADMIN' ? 'Админ' : 'Кабинет'}</span>
+                </Link>
+              )}
+
+              <ThemeToggle className="theme-toggle" />
             </div>
           </div>
         </div>
         {authError && (
-          <div className="page-shell pb-3">
-            <p className="text-sm text-red-600">{authError}</p>
+          <div className="page-shell pointer-events-none">
+            <div className="site-header-alert pointer-events-auto">
+              <p className="text-sm text-red-600">{authError}</p>
+            </div>
           </div>
         )}
 

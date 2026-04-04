@@ -24,7 +24,7 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
   });
 
   return (
-    <div className="crt-effect min-h-screen overflow-hidden bg-[color:var(--nova-bg)] font-mono text-[color:var(--nova-text)]">
+    <div className="crt-effect min-h-screen overflow-hidden bg-[color:var(--nova-bg)] font-mono text-[color:var(--nova-text)]" data-cursor-dark>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(88,242,157,0.18),transparent_30%),linear-gradient(rgba(88,242,157,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(88,242,157,0.05)_1px,transparent_1px)] [background-size:auto,44px_44px,44px_44px]" />
 
       <div className="page-shell relative z-10 py-[clamp(3.5rem,7vw,4.5rem)]">
@@ -34,7 +34,7 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
 
           <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-end">
             <div className="min-w-0 max-w-3xl">
-              <p className="nova-label">signal channel / side frequency / issue {page}</p>
+              <p className="nova-label">INTERZONE WIRE / NOVA FREQUENCY / DISPATCH 01</p>
               <h1
                 className="glitch-text mt-[clamp(1rem,2.6vw,1.5rem)] max-w-[10ch] font-mono text-[clamp(2.4rem,11vw,6.4rem)] font-semibold uppercase leading-[0.94] tracking-[-0.045em]"
                 data-text="NOVA EXPRESS"
@@ -58,7 +58,7 @@ export default async function NovaExpressPage({ searchParams }: NovaExpressPageP
         <section className="mx-auto mt-10 w-full max-w-5xl">
           <div className="mb-6 flex flex-col gap-4 border-b border-[#58f29d]/14 pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="nova-label">latest transmissions</p>
+              <p className="nova-label">последние передачи</p>
               <h2 className="mt-3 font-display text-[clamp(1.9rem,4vw,2.9rem)] leading-[1] tracking-[-0.035em] text-white">
                 Последние передачи
               </h2>

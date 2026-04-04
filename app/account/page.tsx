@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { UserAvatar } from '@/components/UserAvatar';
 import { backendRequest } from '@/services/backend/client';
 import { prepareAvatarDataUrl } from '@/services/userAvatar';
+import { formatDate } from '@/utils/formatDate';
 import { AuthorAnalyticsCharts } from './AuthorAnalyticsCharts';
 
 type BookmarkItem = {
@@ -65,6 +66,12 @@ type AuthorStatsResponse = {
     slug: string;
     views: number;
   }>;
+};
+
+const ARTICLE_SECTION_LABELS: Record<BookmarkItem['article']['section'], string> = {
+  JOURNAL: 'журнал',
+  RESEARCH: 'исследование',
+  NOVA: 'Nova Express',
 };
 
 export default function AccountPage() {
@@ -290,7 +297,7 @@ export default function AccountPage() {
                     {bookmark.article.title}
                   </Link>
                   <p className="text-xs text-gray-500">
-                    {bookmark.article.section.toLowerCase()} · {new Date(bookmark.article.publishedAt).toLocaleDateString()}
+                    {ARTICLE_SECTION_LABELS[bookmark.article.section]} · {formatDate(bookmark.article.publishedAt)}
                   </p>
                 </div>
                 <button
