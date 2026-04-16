@@ -10,6 +10,8 @@ type ContentImageFitMode = 'cover' | 'contain' | 'adaptive';
 type ContentImageSurfaceTone = 'light' | 'dark';
 type ContentImageShape = 'unknown' | 'portrait' | 'square' | 'landscape';
 
+const MAX_IMAGE_RETRY_ATTEMPTS = 1;
+
 type ContentImageProps = {
   src?: string | null;
   alt: string;
@@ -29,6 +31,11 @@ type ContentImageProps = {
   placeholderClassName?: string;
   fitMode?: ContentImageFitMode;
   surfaceTone?: ContentImageSurfaceTone;
+};
+
+type ResolvedContentImageProps = Omit<ContentImageProps, 'src'> & {
+  normalizedSrc?: string;
+  rawSrc?: string | null;
 };
 
 const isDebugEnabled = () => {
@@ -57,8 +64,16 @@ const resolveImageShape = (naturalWidth: number, naturalHeight: number): Content
   return 'landscape';
 };
 
-export const ContentImage = ({
-  src,
+const withRetryAttempt = (imageSrc: string, retryAttempt: number) => {
+  if (retryAttempt <= 0) {
+    return imageSrc;
+  }
+
+  return `${imageSrc}${imageSrc.includes('?') ? '&' : '?'}retry=${retryAttempt}`;
+};
+
+const ResolvedContentImage = ({
+  rawSrc,
   alt,
   route,
   component,
@@ -76,14 +91,21 @@ export const ContentImage = ({
   placeholderClassName,
   fitMode = 'cover',
   surfaceTone = 'light',
-}: ContentImageProps) => {
-  const normalizedSrc = useMemo(() => normalizeDisplayImageUrl(src), [src]);
-  const [errorSrc, setErrorSrc] = useState<string | null>(null);
+  normalizedSrc,
+}: ResolvedContentImageProps) => {
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [hasPermanentError, setHasPermanentError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [imageShape, setImageShape] = useState<ContentImageShape>('unknown');
-  const hasError = Boolean(normalizedSrc) && errorSrc === normalizedSrc;
+  const resolvedSrc = useMemo(() => {
+    if (!normalizedSrc) {
+      return undefined;
+    }
 
-  const hasRenderableContent = Boolean(normalizedSrc) && !hasError;
+    return withRetryAttempt(normalizedSrc, retryAttempt);
+  }, [normalizedSrc, retryAttempt]);
+
+  const hasRenderableContent = Boolean(normalizedSrc) && !hasPermanentError;
   const visualState = resolveCardVisualState({
     route,
     component,
@@ -91,12 +113,6 @@ export const ContentImage = ({
     hasRenderableContent,
     requestPlaceholder: requestPlaceholderOnFailure,
   });
-
-  useEffect(() => {
-    setErrorSrc(null);
-    setIsLoaded(false);
-    setImageShape('unknown');
-  }, [normalizedSrc]);
 
   useEffect(() => {
     if (!isDebugEnabled()) {
@@ -107,12 +123,14 @@ export const ContentImage = ({
       route,
       component,
       articleId,
-      src,
+      src: rawSrc,
       normalizedSrc,
-      hasError,
+      resolvedSrc,
+      retryAttempt,
+      hasPermanentError,
       visualState,
     });
-  }, [articleId, component, hasError, normalizedSrc, route, src, visualState]);
+  }, [articleId, component, hasPermanentError, normalizedSrc, rawSrc, resolvedSrc, retryAttempt, route, visualState]);
 
   if (visualState === 'placeholder') {
     return (
@@ -125,7 +143,7 @@ export const ContentImage = ({
     );
   }
 
-  if (visualState === 'fallback' || !normalizedSrc) {
+  if (visualState === 'fallback' || !resolvedSrc) {
     return (
       <div className={fallbackClassName ?? 'flex h-full items-center justify-center px-6 text-center font-sans text-sm uppercase tracking-widest text-gray-500'}>
         {fallbackLabel}
@@ -141,22 +159,40 @@ export const ContentImage = ({
 
     setImageShape(nextImageShape);
     setIsLoaded(true);
+    setHasPermanentError(false);
 
     if (isDebugEnabled()) {
       console.info('[content-debug] image-loaded', {
         route,
         component,
         articleId,
-        normalizedSrc,
+        resolvedSrc,
         imageShape: nextImageShape,
       });
     }
   };
 
   const handleError = () => {
-    setErrorSrc(normalizedSrc ?? '__missing__');
     setIsLoaded(false);
     setImageShape('unknown');
+
+    if (normalizedSrc && retryAttempt < MAX_IMAGE_RETRY_ATTEMPTS) {
+      setRetryAttempt((currentAttempt) => currentAttempt + 1);
+
+      if (isDebugEnabled()) {
+        console.warn('[content-debug] image-retry', {
+          route,
+          component,
+          articleId,
+          normalizedSrc,
+          nextRetryAttempt: retryAttempt + 1,
+        });
+      }
+
+      return;
+    }
+
+    setHasPermanentError(true);
     trackImageLoadError({
       route,
       component,
@@ -169,7 +205,8 @@ export const ContentImage = ({
         route,
         component,
         articleId,
-        normalizedSrc,
+        resolvedSrc,
+        retryAttempt,
       });
     }
   };
@@ -192,7 +229,8 @@ export const ContentImage = ({
         {shouldUseBackdrop ? (
           <>
             <Image
-              src={normalizedSrc}
+              key={`backdrop:${resolvedSrc}`}
+              src={resolvedSrc}
               alt=""
               aria-hidden="true"
               sizes={sizes}
@@ -208,7 +246,8 @@ export const ContentImage = ({
 
         <div className="content-image-main-frame">
           <Image
-            src={normalizedSrc}
+            key={`main:${resolvedSrc}`}
+            src={resolvedSrc}
             alt={alt}
             sizes={sizes}
             priority={priority}
@@ -229,7 +268,8 @@ export const ContentImage = ({
 
   return (
     <Image
-      src={normalizedSrc}
+      key={`cover:${resolvedSrc}`}
+      src={resolvedSrc}
       alt={alt}
       sizes={sizes}
       priority={priority}
@@ -238,6 +278,22 @@ export const ContentImage = ({
       onLoad={handleLoad}
       onError={handleError}
       {...(fill ? { fill: true } : { width: width ?? 1200, height: height ?? 630 })}
+    />
+  );
+};
+
+export const ContentImage = ({
+  src,
+  ...props
+}: ContentImageProps) => {
+  const normalizedSrc = useMemo(() => normalizeDisplayImageUrl(src), [src]);
+
+  return (
+    <ResolvedContentImage
+      key={normalizedSrc ?? '__missing__'}
+      rawSrc={src}
+      normalizedSrc={normalizedSrc}
+      {...props}
     />
   );
 };

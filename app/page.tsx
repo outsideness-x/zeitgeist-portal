@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { fetchArticles } from '@/services/content';
 import { ArticleCard } from '@/components/ArticleCard';
+import { NovaArticlePreviewCard } from '@/components/NovaArticlePreviewCard';
 import { EmptyState } from '@/components/EmptyState';
 import { resolveCollectionVisualState } from '@/services/content/renderPolicy';
-import { formatDate } from '@/utils/formatDate';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,18 +13,30 @@ const HERO_NAV_ITEMS = [
   { href: '/research', label: 'ИССЛЕДОВАНИЯ' },
 ];
 
-const getResearchSidebarTags = (tags: string[]) => {
-  return tags
-    .filter((tag) => {
-      const normalizedTag = tag.trim().replace(/^#+/, '').toLowerCase();
-      return normalizedTag.length > 0 && normalizedTag !== 'research' && normalizedTag !== 'исследование';
-    })
-    .slice(0, 2);
-};
+const CURATED_START_HERE_ARTICLES = [
+  {
+    title: 'Мияби через века: как утонченность Хейан стала глобальным эталоном вкуса',
+    sectionLabel: 'Исследования',
+    href: '/article/miiabi-chieriez-vieka-kak-utonchiennost-khieian-stala-ghlobalnym-etalonom-vkusa',
+  },
+  {
+    title: 'Исламские учёные и изучение Индии и её культуры',
+    sectionLabel: 'Журнал',
+    href: '/article/islamskiie-uchionyie-i-izuchieniie-indii-i-ieio-kultury',
+  },
+  {
+    title: 'Ассасины Интерзоны: Как Уильям Берроуз превратил средневековую секту в икону постмодерна',
+    sectionLabel: 'Nova Express',
+    href: '/article/assasiny-intierzony-kak-uiliam-bierrouz-prievratil-sriednieviekovuiu-siektu-v-ikonu-postmodierna',
+  },
+] as const;
 
 export default async function Home() {
   // data fetching on server
-  const articlesResult = await fetchArticles(undefined, { page: 1, pageSize: 20 });
+  const [articlesResult, novaResult] = await Promise.all([
+    fetchArticles(undefined, { page: 1, pageSize: 20 }),
+    fetchArticles('nova', { page: 1, pageSize: 2 }),
+  ]);
   const articles = articlesResult.items;
   const feedState = resolveCollectionVisualState({
     itemsCount: articles.length,
@@ -33,8 +45,7 @@ export default async function Home() {
 
   const featured = articles[0];
   const journalArticles = articles.filter(a => a.type === 'journal' && a.id !== featured?.id).slice(0, 3);
-  const researchPapers = articles.filter(a => a.type === 'research' && a.id !== featured?.id).slice(0, 4);
-  const novaDispatches = articles.filter(a => a.type === 'nova' && a.id !== featured?.id).slice(0, 2);
+  const novaDispatches = novaResult.items;
 
   return (
     <div className="pb-24 dark:bg-[color:var(--color-canvas)]">
@@ -78,7 +89,7 @@ export default async function Home() {
                 <h2 className="mt-4 max-w-[10ch] font-display text-[clamp(1.58rem,2.15vw,1.95rem)] leading-[1.02] tracking-[-0.04em] text-ink dark:text-gray-100">
                   Эссе и заметки
                 </h2>
-                <p className="mt-4 max-w-[30ch] font-serif text-[0.94rem] leading-[1.58] text-[color:var(--muted)] dark:text-[color:var(--muted)]">
+                <p className="mt-4 max-w-[29ch] font-serif text-[1.06rem] font-medium leading-[1.74] text-[color:var(--muted-strong)] dark:text-[color:var(--muted-strong)]">
                   Редакционная линия о культуре, истории и литературе с аккуратным ритмом чтения.
                 </p>
                 <span className="mt-auto pt-8 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--muted-strong)] transition-colors group-hover:text-accent dark:text-[color:var(--muted-strong)]">
@@ -94,7 +105,7 @@ export default async function Home() {
                 <h2 className="mt-4 max-w-[11ch] font-display text-[clamp(1.58rem,2.15vw,1.95rem)] leading-[1.02] tracking-[-0.04em] text-ink dark:text-gray-100">
                   Каталог исследований
                 </h2>
-                <p className="mt-4 max-w-[31ch] font-serif text-[0.94rem] leading-[1.58] text-[color:var(--muted)] dark:text-[color:var(--muted)]">
+                <p className="mt-4 max-w-[30ch] font-serif text-[1.06rem] font-medium leading-[1.74] text-[color:var(--muted-strong)] dark:text-[color:var(--muted-strong)]">
                   Рецензируемые тексты, архивные находки и академические материалы с чистой иерархией.
                 </p>
                 <span className="mt-auto pt-8 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--muted-strong)] transition-colors group-hover:text-accent dark:text-[color:var(--muted-strong)] dark:group-hover:text-accent">
@@ -104,16 +115,16 @@ export default async function Home() {
 
               <Link
                 href="/nova-express"
-                className="group flex h-full min-h-[14.5rem] flex-col rounded-[1.75rem] border border-[rgba(61,219,150,0.12)] bg-[color:var(--color-nova-bg)] p-6 shadow-[0_26px_70px_rgba(0,0,0,0.22)] transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(61,219,150,0.22)] dark:shadow-[0_30px_80px_rgba(0,0,0,0.38)] sm:p-7"
+                className="group flex h-full min-h-[14.5rem] flex-col rounded-[1.75rem] border border-[color:var(--c-nova-rule)] bg-[linear-gradient(180deg,#232322,#181817)] p-6 shadow-[0_22px_60px_rgba(0,0,0,0.24)] transition-all duration-300 hover:-translate-y-1 hover:border-[color:var(--c-nova-text-2)] sm:p-7"
               >
-                <p className="font-mono text-[0.68rem] uppercase tracking-[0.24em] text-[#9df5c3]">Nova</p>
-                <h2 className="mt-4 max-w-[10ch] font-display text-[clamp(1.58rem,2.15vw,1.95rem)] leading-[1.04] tracking-[-0.03em] text-[#f3fff8]">
+                <p className="font-mono text-[0.68rem] uppercase tracking-[0.24em] text-[color:var(--c-nova-text-2)]">Nova</p>
+                <h2 className="mt-4 max-w-[10ch] font-display text-[clamp(1.58rem,2.15vw,1.95rem)] leading-[1.04] tracking-[-0.03em] text-[color:var(--c-nova-text)]">
                   Nova Express
                 </h2>
-                <p className="mt-4 max-w-[31ch] font-sans text-[0.92rem] leading-[1.62] text-[#c5e8d4]">
+                <p className="mt-5 max-w-[30ch] font-sans text-[0.98rem] leading-[1.68] text-[color:var(--c-nova-text-2)]">
                   Кибернетика, кат-ап, электронная революция и эстетика сигнала, шума и сбоя.
                 </p>
-                <span className="mt-auto pt-8 font-mono text-[0.72rem] uppercase tracking-[0.18em] text-[#bfffd6] transition-colors group-hover:text-white">
+                <span className="mt-auto pt-9 font-mono text-[0.72rem] uppercase tracking-[0.18em] text-[color:var(--c-nova-accent)] transition-colors group-hover:text-[color:var(--c-nova-text)]">
                   Открыть канал
                 </span>
               </Link>
@@ -179,52 +190,23 @@ export default async function Home() {
 
             <div className="space-y-8 lg:col-span-4">
               <div className="site-panel rounded-[1.75rem] p-6 sm:p-7">
-                <div className="mb-6 flex items-end justify-between gap-4 border-b border-[color:var(--line-soft)] pb-4">
-                  <div>
-                    <p className="section-kicker">исследования</p>
-                    <h2 className="mt-3 font-display text-[1.8rem] leading-[1] tracking-[-0.035em] text-accent">Последние исследования</h2>
-                  </div>
-                  <Link href="/research" className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)] transition-colors hover:text-accent">
-                    Каталог
-                  </Link>
+                <div className="mb-6 border-b border-[color:var(--line-soft)] pb-4">
+                  <p className="section-kicker">редакционный маршрут</p>
+                  <h2 className="mt-3 font-display text-[1.8rem] leading-[1] tracking-[-0.035em] text-accent">С чего начать</h2>
                 </div>
 
-                <div className="space-y-6">
-                  {researchPapers.length > 0 ? (
-                    researchPapers.map((paper) => {
-                      const sidebarTags = getResearchSidebarTags(paper.tags);
-
-                      return (
-                        <div key={paper.id} className="group border-b border-[color:var(--line-soft)] pb-6 last:border-b-0 last:pb-0">
-                          <span className="mb-2 block font-sans text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">
-                            {formatDate(paper.published_at)}
-                          </span>
-                          <h4 className="mb-2 font-display text-[1.45rem] leading-[1.06] tracking-[-0.03em] transition-colors group-hover:text-accent dark:text-gray-200">
-                            <Link href={`/article/${paper.id}`}>{paper.title}</Link>
-                          </h4>
-                          <p className="line-clamp-3 text-[1rem] leading-relaxed text-[color:var(--muted)] dark:text-gray-400">{paper.excerpt}</p>
-                          {sidebarTags.length > 0 ? (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {sidebarTags.map((tag) => (
-                                <span key={tag} className="meta-pill">{tag}</span>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })
-                  ) : feedState === 'error' ? (
-                    <EmptyState
-                      title="исследования временно недоступны"
-                      description="получение данных из ghost завершилось ошибкой. как только API восстановится, список появится автоматически."
-                    />
-                  ) : (
-                    <EmptyState
-                      title="исследования скоро появятся"
-                      description="каталог заполнится после подключения контента."
-                    />
-                  )}
-                </div>
+                <ol className="space-y-6">
+                  {CURATED_START_HERE_ARTICLES.map((article) => (
+                    <li key={article.href} className="group border-b border-[color:var(--line-soft)] pb-6 last:border-b-0 last:pb-0">
+                      <span className="mb-2 block font-sans text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">
+                        {article.sectionLabel}
+                      </span>
+                      <h4 className="font-display text-[1.38rem] leading-[1.12] tracking-[-0.03em] text-ink transition-colors group-hover:text-accent dark:text-gray-100 dark:group-hover:text-accent">
+                        <Link href={article.href}>{article.title}</Link>
+                      </h4>
+                    </li>
+                  ))}
+                </ol>
               </div>
 
               <div className="site-panel rounded-[1.75rem] bg-[linear-gradient(180deg,rgba(141,67,57,0.12),transparent_75%)] p-8 text-center transition-colors dark:bg-[color:var(--color-surface)]">
@@ -240,59 +222,43 @@ export default async function Home() {
             </div>
           </div>
 
-          <section className="mt-20" data-cursor-dark>
-            <div className="crt-effect relative overflow-hidden rounded-[2rem] border border-[rgba(61,219,150,0.12)] bg-[color:var(--color-nova-bg)] p-6 text-[#f0fff6] shadow-[0_34px_90px_rgba(0,0,0,0.28)] sm:p-8 lg:p-10">
-              <div className="scanlines absolute inset-0 opacity-[0.08]" aria-hidden="true" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_24%,rgba(88,242,157,0.18),transparent_28%),radial-gradient(circle_at_84%_20%,rgba(88,164,242,0.08),transparent_26%)]" />
-              <div className="relative grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-start">
-                <div>
-                  <p className="nova-label">сигнальный канал / редакционный поток</p>
-                  <h2
-                    className="glitch-text mt-5 max-w-[10ch] font-mono text-[clamp(2.25rem,9vw,4.75rem)] font-semibold uppercase leading-[0.94] tracking-[-0.04em]"
-                    data-text="NOVA EXPRESS"
-                  >
-                    Nova Express
-                  </h2>
-                  <p className="mt-6 max-w-xl font-serif text-[1.1rem] leading-relaxed text-[#d5ffe5]/78">
-                    Заметки и исследования на тему контркультуры, андерграунда и границ Контроля.
-                  </p>
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    {['cat-up', 'cybernetics', 'control', 'electronic revolution'].map((tag) => (
-                      <span key={tag} className="nova-pill">{tag}</span>
-                    ))}
-                  </div>
-                  <Link href="/nova-express" className="mt-8 inline-flex items-center rounded-full border border-[#58f29d]/28 bg-black/30 px-5 py-3 font-mono text-[0.74rem] uppercase tracking-[0.2em] text-[#bfffd6] transition-colors hover:border-[#58f29d]/48 hover:text-white">
-                    Открыть канал
-                  </Link>
-                </div>
+          <section className="nova-strip mt-20" data-cursor-dark>
+            <div aria-hidden="true" className="nova-ambient-grid nova-ambient-grid--panel" />
+            <div aria-hidden="true" className="nova-ambient-signal nova-ambient-signal--panel" />
+            <div aria-hidden="true" className="nova-ambient-vignette nova-ambient-vignette--panel" />
+            <div aria-hidden="true" className="scanlines nova-ambient-scan nova-ambient-scan--panel" />
+            <div className="nova-strip-inner">
+              <div className="nova-strip-header">
+                <span className="nova-eyebrow">Nova Express / Сигнальный поток</span>
+                <Link className="nova-link" href="/nova-express">
+                  Открыть канал →
+                </Link>
+              </div>
 
-                <div className="grid auto-rows-fr gap-4">
-                  {novaDispatches.length > 0 ? (
-                    novaDispatches.map((article) => (
-                      <Link
-                        key={article.id}
-                        href={`/article/${article.id}`}
-                        className="flex h-full min-h-[14.5rem] flex-col rounded-[1.45rem] border border-[rgba(61,219,150,0.12)] bg-[color:var(--color-nova-bg)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(61,219,150,0.22)] sm:p-6"
-                      >
-                        <p className="font-mono text-[0.68rem] uppercase tracking-[0.24em] text-[#a6ffca]/62">
-                          {formatDate(article.published_at)} · {article.reading_time ? `${article.reading_time} мин` : 'короткий сигнал'}
-                        </p>
-                        <h3 className="mt-3 max-w-[14ch] line-clamp-3 font-sans text-[clamp(1.45rem,2vw,1.72rem)] font-semibold leading-[1.06] tracking-[-0.035em] text-[#f3fff7]">
-                          {article.title}
-                        </h3>
-                        <p className="mt-3 line-clamp-3 font-serif text-[0.95rem] leading-[1.58] text-[#d6ffe6]/72">
-                          {article.excerpt}
-                        </p>
-                      </Link>
-                    ))
-                  ) : (
-                    <EmptyState
-                      title="nova express синхронизируется"
-                      description="как только публикации станут доступны, этот блок автоматически соберет последние передачи канала."
-                      className="border-[#23442d] bg-black/45 shadow-none [&>p:first-child]:text-[#6dd8a2] [&>h2]:text-[#ecfff4] [&>p:last-child]:text-[#a6d7b7]"
+              <div className="nova-strip-intro">
+                <h2 className="nova-title nova-title-signal" data-text="Nova Express">Nova Express</h2>
+                <p className="nova-desc">
+                  Кибернетика, cut-up, шум, сбой, электронная революция и эстетика сигнального потока.
+                </p>
+              </div>
+
+              <div className="nova-cards">
+                {novaDispatches.length > 0 ? (
+                  novaDispatches.map((article) => (
+                    <NovaArticlePreviewCard
+                      key={article.id}
+                      article={article}
+                      routePath="/"
+                      compact
                     />
-                  )}
-                </div>
+                  ))
+                ) : (
+                  <EmptyState
+                    title="nova express синхронизируется"
+                    description="как только публикации станут доступны, этот блок автоматически соберет последние передачи канала."
+                    className="border-[color:var(--c-nova-rule)] bg-black/35 shadow-none [&>p:first-child]:text-[color:var(--c-nova-accent)] [&>h2]:text-[color:var(--c-nova-text)] [&>p:last-child]:text-[color:var(--c-nova-text-2)]"
+                  />
+                )}
               </div>
             </div>
           </section>

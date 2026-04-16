@@ -9,7 +9,7 @@ export const BOOK_FULL_DESCRIPTION = `Эта книга — первый в Ро
 «Молитвенник джайна» станет надежным проводником для тех, кто хочет прикоснуться к живой традиции ненасилия, понять природу кармы и перерождения, а также найти вдохновение в древних истинах о гармонии человека и вселенной. Читайте с открытым сердцем, и пусть этот путь приведет вас к новому пониманию жизни и счастья.`;
 export const BOOK_IMAGE_SRC = '/sales/book1.png';
 export const PAYMENT_METHODS_LIST = ['Карта Озон: 2204 3206 3369 2324'];
-export const PAYMENT_TELEGRAM = '@Insanecolonel';
+export const PAYMENT_TELEGRAM = '@PsychedelicBaron';
 export const PAYMENT_EMAIL = 'goshamain@protonmail.com';
 export const BOOK_PRICE_LABEL = '300 рублей';
 
